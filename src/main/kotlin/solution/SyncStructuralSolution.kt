@@ -3,10 +3,10 @@ package pl.edu.pw.solution
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
+class SyncStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
     private val VERBOSE = true
 
-    override fun solve(aMatrix: INDArray, bMatrix: INDArray): Companion.RoundResult {
+    override suspend fun solve(aMatrix: INDArray, bMatrix: INDArray): Companion.RoundResult {
         val startTime = System.nanoTime()
 
         var xMatrix = Nd4j.zeros(bMatrix.rows(), 1)
@@ -38,7 +38,7 @@ class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Soluti
                     } seconds"
                 )
             }
-        } while (i < 1000000 && rNorm > tolerance)
+        } while (i < 10000 && rNorm > tolerance)
 
         return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
     }
@@ -71,7 +71,7 @@ class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Soluti
         return result
     }
 
-    fun multiplyINDByScalar(matrix: INDArray, scalar: Double): INDArray {
+    private fun multiplyINDByScalar(matrix: INDArray, scalar: Double): INDArray {
         val (rows, cols) = arrayOf(matrix.rows(), matrix.columns())
 
         val result = Nd4j.zeros(rows, cols)
@@ -119,7 +119,7 @@ class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Soluti
         return result
     }
 
-    fun transposeIND(matrix: INDArray): INDArray {
+    private fun transposeIND(matrix: INDArray): INDArray {
         val (rows, cols) = arrayOf(matrix.rows(), matrix.columns())
         val transposed = Nd4j.zeros(cols, rows)
 

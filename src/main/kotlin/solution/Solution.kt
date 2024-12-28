@@ -13,7 +13,7 @@ abstract class Solution(
         )
     }
 
-    abstract fun solve(aMatrix: INDArray, bMatrix: INDArray): RoundResult
+    abstract suspend fun solve(aMatrix: INDArray, bMatrix: INDArray): RoundResult
     protected fun INDArray.norm(): Double {
         val norm = this.norm2Number().toDouble()
         return norm
