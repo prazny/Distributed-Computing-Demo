@@ -1,0 +1,17 @@
+package pl.edu.pw.experiment
+
+import pl.edu.pw.ConfigurationProvider
+import pl.edu.pw.solution.Solution
+
+class ExperimentWrapper(
+    private val config: ConfigurationProvider,
+    private val solutions: List<Solution>
+) {
+
+    fun proceed() {
+        val results = solutions.associate {
+            it to it.solve(config.aMatrix, config.bMatrix)
+        }
+        println(results)
+    }
+}
