@@ -18,7 +18,7 @@ class ConfigurationProvider(
         private set
 
     init {
-        aMatrix = Nd4j.rand(nValue, nValue).let { it.transpose().mul(it) }
+        aMatrix = Nd4j.rand(nValue, nValue).let { it.transpose().mmul(it) }
         bMatrix = Nd4j.rand(nValue, 1)
     }
 }

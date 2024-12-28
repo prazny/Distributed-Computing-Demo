@@ -4,7 +4,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
 class SimpleStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
-    private val VERBOSE = false
+    private val VERBOSE = true
 
     override fun solve(aMatrix: INDArray, bMatrix: INDArray): Companion.RoundResult {
         val startTime = System.nanoTime()
