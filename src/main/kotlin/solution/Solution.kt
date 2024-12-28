@@ -14,9 +14,9 @@ abstract class Solution(
     }
 
     abstract fun solve(aMatrix: INDArray, bMatrix: INDArray): RoundResult
-    protected fun INDArray.norm2pow(): Double {
+    protected fun INDArray.norm(): Double {
         val norm = this.norm2Number().toDouble()
-        return norm * norm
+        return norm
     }
 
     protected fun getElapsedTime(startTime: Long): Double =

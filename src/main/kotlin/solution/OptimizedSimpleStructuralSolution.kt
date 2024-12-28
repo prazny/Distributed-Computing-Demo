@@ -11,20 +11,20 @@ class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Soluti
 
         var xMatrix = Nd4j.zeros(bMatrix.rows(), 1)
         var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
-        var rNorm = r.norm2pow()
+        var rNorm = r.norm()
         var p = r
-        var beta: Double;
+        var beta: Double
 
-        var i = 0;
+        var i = 0
         do {
-            i++;
+            i++
             val q = multiplyIND(aMatrix, p)
 
-            val alfa = r.norm2pow() / (multiplyIND(transposeIND(p), q)).getDouble(0)
+            val alfa = r.norm() / (multiplyIND(transposeIND(p), q)).getDouble(0)
 
             val rPrevNorm = rNorm
             r = subtractIND(r, multiplyINDByScalar(q, alfa))
-            rNorm = r.norm2pow()
+            rNorm = r.norm()
 
             xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
             beta = rNorm / rPrevNorm
@@ -33,14 +33,12 @@ class OptimizedSimpleStructuralSolution(override val tolerance: Double) : Soluti
 
             if (i % 1000 == 0 && VERBOSE) {
                 println(
-                    "Iteration $i: Residual norm = ${Math.sqrt(rNorm)}, Time elapsed = ${
-                        "%.2f".format(
-                            getElapsedTime(startTime)
-                        )
+                    "Iteration $i: Norm = ${rNorm}, Time elapsed = ${
+                        "%.2f".format(getElapsedTime(startTime))
                     } seconds"
                 )
             }
-        } while (i < 1000000 && rNorm > tolerance);
+        } while (i < 1000000 && rNorm > tolerance)
 
         return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
     }

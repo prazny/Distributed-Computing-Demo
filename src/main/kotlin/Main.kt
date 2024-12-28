@@ -6,11 +6,9 @@ import pl.edu.pw.solution.SimpleStructuralSolution
 
 
 fun main() {
-    val config = ConfigurationProvider(300, 1e-6, 1)
-    println(config.aMatrix)
-    println(config.bMatrix)
+    val config = ConfigurationProvider(50, 1e-6, 1)
     val solutions = listOf(
-        SimpleStructuralSolution(config.toleranceValue),
+        //SimpleStructuralSolution(config.toleranceValue),
         OptimizedSimpleStructuralSolution(config.toleranceValue)
     )
     val experiment = ExperimentWrapper(config, solutions)

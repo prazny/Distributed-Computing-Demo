@@ -19,27 +19,27 @@ class SimpleStructuralSolution(override val tolerance: Double) : Solution(tolera
             i++;
             val q = aMatrix.mmul(p)
 
-            val alfa = r.norm2pow() / (p.transpose().mmul(q)).getDouble(0)
+            val alfa = r.norm() / (p.transpose().mmul(q)).getDouble(0)
 
             val rPrev = r
             r = r.sub(q.mul(alfa))
 
             xMatrix = xMatrix.add(p.mul(alfa))
-            beta = r.norm2pow() / rPrev.norm2pow()
+            beta = r.norm() / rPrev.norm()
 
             p = r.add(p.mul(beta))
 
             if (i % 1000 == 0 && VERBOSE) {
                 println(
-                    "Iteration $i: Residual norm = ${Math.sqrt(r.norm2pow())}, Time elapsed = ${
+                    "Iteration $i: Residual norm = ${Math.sqrt(r.norm())}, Time elapsed = ${
                         "%.2f".format(
                             getElapsedTime(startTime)
                         )
                     } seconds"
                 )
             }
-        } while (i < 1000000 && r.norm2pow() > tolerance);
+        } while (i < 1000000 && r.norm() > tolerance);
 
-        return Companion.RoundResult(i, getElapsedTime(startTime), r.norm2pow())
+        return Companion.RoundResult(i, getElapsedTime(startTime), r.norm())
     }
 }
