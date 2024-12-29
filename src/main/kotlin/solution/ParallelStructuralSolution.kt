@@ -2,17 +2,17 @@ package pl.edu.pw.solution
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.factory.Nd4j
 
 class ParallelStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
     private val VERBOSE = true
+    private val THREAD_COUNT = 2
 
-    override suspend fun solve(aMatrix: INDArray, bMatrix: INDArray): Companion.RoundResult {
+    override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
         val startTime = System.nanoTime()
 
-        var xMatrix = Nd4j.zeros(bMatrix.rows(), 1)
+        var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
         var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
         var rNorm = r.norm()
         var p = r
@@ -23,16 +23,22 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
             i++
             val q = multiplyIND(aMatrix, p)
 
-            val alfa = r.norm() / (multiplyIND(transposeIND(p), q)).getDouble(0)
+            val alfa = rNorm / dotProduct(transposeIND(p), q)
 
             val rPrevNorm = rNorm
             r = subtractIND(r, multiplyINDByScalar(q, alfa))
             rNorm = r.norm()
 
-            xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
             beta = rNorm / rPrevNorm
 
-            p = addIND(r, multiplyINDByScalar(p, beta))
+            coroutineScope {
+                launch(Dispatchers.Default) {
+                    xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
+                }
+                launch(Dispatchers.Default) {
+                    p = addIND(r, multiplyINDByScalar(p, beta))
+                }
+            }
 
             if (i % 1000 == 0 && VERBOSE) {
                 println(
@@ -49,112 +55,89 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
      * This should be in separate class but, the exercise conditions require avoiding it.
      */
 
-    private suspend fun multiplyIND(aMatrix: INDArray, bMatrix: INDArray): INDArray {
-        val rowsA = aMatrix.rows()
-        val colsA = aMatrix.columns()
-        val rowsB = bMatrix.rows()
-        val colsB = bMatrix.columns()
-
-        if (colsA != rowsB)
-            throw IllegalArgumentException("Columns are not equal.")
-
-        val result = Nd4j.zeros(rowsA, colsB)
-
-        coroutineScope {
-            for (i in 0L until rowsA) {
-                launch(Dispatchers.Default) {
-                    for (j in 0L until colsB) {
-                        var sum = 0.0
-                        for (k in 0L until colsA) {
-                            sum += aMatrix.getDouble(i, k) * bMatrix.getDouble(k, j)
-                        }
-                        result.putScalar(i, j, sum)
-                    }
-                }
-            }
-
-        }
-
-        return result
+    private suspend fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
+        val result = multiplyIND(aMatrix, bMatrix)
+        return result.sumOf { it.sum() }
     }
 
-    suspend fun multiplyINDByScalar(matrix: INDArray, scalar: Double): INDArray {
-        val (rows, cols) = arrayOf(matrix.rows(), matrix.columns())
+    private suspend fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+        val rowsA = aMatrix.size
+        val colsA = aMatrix[0].size
+        val rowsB = bMatrix.size
+        val colsB = bMatrix[0].size
 
-        val result = Nd4j.zeros(rows, cols)
-        coroutineScope {
-            for (i in 0L until rows) {
-                launch(Dispatchers.Default) {
-                    for (j in 0L until cols) {
-                        val value = matrix.getDouble(i, j)
-                        result.putScalar(i, j, value * scalar)
-                    }
+        if (colsA != rowsB) throw IllegalArgumentException("Columns are not equal.")
+
+        val result = Array(rowsA) { DoubleArray(colsB) }
+        applyCoroutineScopeWithChunks(rowsA) { i ->
+            for (j in 0 until colsB) {
+                for (k in 0 until colsA) {
+                    result[i][j] += aMatrix[i][k] * bMatrix[k][j]
                 }
             }
         }
         return result
     }
 
-    private suspend fun addIND(aMatrix: INDArray, bMatrix: INDArray): INDArray {
-        if (!aMatrix.shape().contentEquals(bMatrix.shape()))
+    private suspend fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
+        val rows = matrix.size
+        val result = Array(rows) { DoubleArray(matrix[0].size) }
+
+        applyCoroutineScopeWithChunks(rows) { i ->
+            for (j in matrix[i].indices) {
+                result[i][j] = matrix[i][j] * scalar
+            }
+        }
+        return result
+    }
+
+    private suspend fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+        if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
             throw IllegalArgumentException("Shapes are not equal.")
 
-        val (rows, cols) = arrayOf(aMatrix.rows(), aMatrix.columns())
+        val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
 
-        val result = Nd4j.zeros(rows, cols)
-        coroutineScope {
-            for (i in 0L until rows) {
-                launch(Dispatchers.Default) {
-                    for (j in 0L until cols) {
-
-                        val sum = aMatrix.getDouble(i, j) + bMatrix.getDouble(i, j)
-                        result.putScalar(i, j, sum)
-                    }
-                }
+        applyCoroutineScopeWithChunks(aMatrix.size) { row ->
+            for (col in 0 until aMatrix[row].size) {
+                result[row][col] = aMatrix[row][col] + bMatrix[row][col]
             }
         }
-
         return result
     }
 
-    private suspend fun subtractIND(aMatrix: INDArray, bMatrix: INDArray): INDArray {
-        if (!aMatrix.shape().contentEquals(bMatrix.shape()))
+    private suspend fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+        if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
             throw IllegalArgumentException("Shapes are not equal.")
 
-        val (rows, cols) = arrayOf(aMatrix.rows(), aMatrix.columns())
+        val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
 
-        val result = Nd4j.zeros(rows, cols)
-        coroutineScope {
-            for (i in 0L until rows) {
-                launch(Dispatchers.Default) {
-                    for (j in 0L until cols) {
-
-                        val difference = aMatrix.getDouble(i, j) - bMatrix.getDouble(i, j)
-                        result.putScalar(i, j, difference)
-                    }
-                }
+        applyCoroutineScopeWithChunks(aMatrix.size) { row ->
+            for (col in 0 until aMatrix[row].size) {
+                result[row][col] = aMatrix[row][col] - bMatrix[row][col]
             }
         }
-
         return result
     }
 
-    private suspend fun transposeIND(matrix: INDArray): INDArray {
-        val (rows, cols) = arrayOf(matrix.rows(), matrix.columns())
-        val transposed = Nd4j.zeros(cols, rows)
+    private fun transposeIND(matrix: Array<DoubleArray>): Array<DoubleArray> {
+        val rows = matrix.size
+        val cols = matrix[0].size
 
-        coroutineScope {
-            for (i in 0L until rows) {
-                launch(Dispatchers.Default) {
-                    for (j in 0L until cols) {
+        return Array(cols) { i -> DoubleArray(rows) { j -> matrix[j][i] } }
+    }
 
-                        val value = matrix.getDouble(i, j)
-                        transposed.putScalar(j, i, value)
+    private suspend fun applyCoroutineScopeWithChunks(count: Int, operation: suspend (Int) -> Unit) {
+        // Divide (count / thread_count) and ceil
+        val chunkSize = (count + THREAD_COUNT - 1) / THREAD_COUNT
+
+        return coroutineScope {
+            (0 until count step chunkSize).map { startRow ->
+                launch(Dispatchers.IO) {
+                    for (i in startRow until (startRow + chunkSize).coerceAtMost(count)) {
+                        operation(i)
                     }
-                }
-            }
+               }
+            }.joinAll()
         }
-
-        return transposed
     }
 }

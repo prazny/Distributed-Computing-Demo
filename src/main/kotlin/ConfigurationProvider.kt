@@ -1,8 +1,5 @@
 package pl.edu.pw
 
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.factory.Nd4j
-
 class ConfigurationProvider(
     private var n: Int,
     private var tolerance: Double,
@@ -11,14 +8,41 @@ class ConfigurationProvider(
     private val nValue get() = n
     val toleranceValue get() = tolerance
 
-    var aMatrix: INDArray
+    var aMatrix: Array<DoubleArray>
         private set
 
-    var bMatrix: INDArray
+    var bMatrix: Array<DoubleArray>
         private set
 
     init {
-        aMatrix = Nd4j.rand(nValue, nValue).let { it.transpose().mmul(it) }
-        bMatrix = Nd4j.rand(nValue, 1)
+        aMatrix = generateSymmetricPositiveDefiniteMatrix(nValue)
+        bMatrix = Array(nValue) { DoubleArray(1) { Math.random() } }
     }
+
+    private fun generateSymmetricPositiveDefiniteMatrix(size: Int): Array<DoubleArray> {
+        val randomMatrix = Array(size) { DoubleArray(size) { Math.random() } }
+        val transpose = Array(size) { i -> DoubleArray(size) { j -> randomMatrix[j][i] } }
+
+        return multiplyMatrixes(transpose, randomMatrix)
+    }
+
+    private fun multiplyMatrixes(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+        val rowsA = aMatrix.size
+        val colsA = aMatrix[0].size
+        val rowsB = bMatrix.size
+        val colsB = bMatrix[0].size
+
+        if (colsA != rowsB) throw IllegalArgumentException("Columns are not equal.")
+
+        val result = Array(rowsA) { DoubleArray(colsB) }
+        for (i in 0 until rowsA) {
+            for (j in 0 until colsB) {
+                for (k in 0 until colsA) {
+                    result[i][j] += aMatrix[i][k] * bMatrix[k][j]
+                }
+            }
+        }
+        return result
+    }
+
 }
