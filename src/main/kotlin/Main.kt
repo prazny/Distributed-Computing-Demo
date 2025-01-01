@@ -6,7 +6,7 @@ import pl.edu.pw.solution.SyncStructuralSolution
 
 
 fun main() {
-    val config = ConfigurationProvider(50, 1e-6, 1)
+    val config = ConfigurationProvider(1000, 1e-6, 1)
     val solutions = listOf(
         SyncStructuralSolution(config.toleranceValue),
         ParallelStructuralSolution(config.toleranceValue),
