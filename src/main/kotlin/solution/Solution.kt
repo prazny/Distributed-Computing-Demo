@@ -1,7 +1,5 @@
 package pl.edu.pw.solution
 
-import kotlin.math.sqrt
-
 abstract class Solution(
     open val tolerance: Double
 ) {
@@ -15,8 +13,8 @@ abstract class Solution(
 
     abstract suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult
 
-    protected fun Array<DoubleArray>.norm(): Double {
-        return sqrt(this.sumOf { row -> row.sumOf { it * it } })
+    protected fun Array<DoubleArray>.normSquared(): Double {
+        return this.sumOf { row -> row.sumOf { it * it } }
     }
 
     protected fun getElapsedTime(startTime: Long): Double =

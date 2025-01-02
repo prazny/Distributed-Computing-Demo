@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlin.math.sqrt
 
 class ParallelStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
     private val VERBOSE = true
@@ -14,7 +15,8 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
 
         var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
         var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
-        var rNorm = r.norm()
+        var rNormSquared = r.normSquared()
+        var rNorm = sqrt(rNormSquared)
         var p = r
         var beta: Double
 
@@ -23,13 +25,14 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
             i++
             val q = multiplyIND(aMatrix, p)
 
-            val alfa = rNorm / dotProduct(transposeIND(p), q)
+            val alfa = rNormSquared / dotProduct(transposeIND(p), q)
 
-            val rPrevNorm = rNorm
+            val rPrevNormSquared = rNormSquared
             r = subtractIND(r, multiplyINDByScalar(q, alfa))
-            rNorm = r.norm()
+            rNormSquared = r.normSquared()
+            rNorm = sqrt(rNormSquared)
 
-            beta = rNorm / rPrevNorm
+            beta = rNormSquared / rPrevNormSquared
 
             coroutineScope {
                 launch(Dispatchers.Default) {
@@ -40,14 +43,14 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
                 }
             }
 
-            if (i % 1000 == 0 && VERBOSE) {
+            if (i % 100 == 0 && VERBOSE) {
                 println(
                     "Iteration $i: Norm = ${rNorm}, Time elapsed = ${
                         "%.2f".format(getElapsedTime(startTime))
                     } seconds"
                 )
             }
-        } while (i < 10000 && rNorm > tolerance)
+        } while (i < 1000000 && rNorm > tolerance)
         return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
     }
 
