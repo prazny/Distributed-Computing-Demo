@@ -11,7 +11,8 @@ class SyncStructuralSolution(override val tolerance: Double) : Solution(toleranc
         var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
         var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
         var rNormSquared = r.normSquared()
-        var rNorm = sqrt(rNormSquared)
+        var rNorm: Double
+
         var p = r
         var beta: Double
 
@@ -39,7 +40,7 @@ class SyncStructuralSolution(override val tolerance: Double) : Solution(toleranc
                     } seconds"
                 )
             }
-        } while (i < 100000 && rNorm > tolerance)
+        } while (rNorm > tolerance)
         return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
     }
 

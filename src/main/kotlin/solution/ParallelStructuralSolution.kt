@@ -16,8 +16,9 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
         var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
         var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
         var rNormSquared = r.normSquared()
-        var rNorm = sqrt(rNormSquared)
-        var p = r
+        var rNorm: Double
+
+      var p = r
         var beta: Double
 
         var i = 0
@@ -50,7 +51,7 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
                     } seconds"
                 )
             }
-        } while (i < 1000000 && rNorm > tolerance)
+        } while (rNorm > tolerance)
         return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
     }
 
