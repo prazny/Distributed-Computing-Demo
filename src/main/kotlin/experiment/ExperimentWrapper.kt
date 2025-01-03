@@ -5,22 +5,58 @@ import pl.edu.pw.ConfigurationProvider
 import pl.edu.pw.solution.Solution
 
 class ExperimentWrapper(
-    private val config: ConfigurationProvider,
-    private val solutions: List<Solution>
+  private val config: ConfigurationProvider,
+  private val solutions: List<Solution>
 ) {
 
-  fun printResults (result: Map<Solution, Solution.Companion.RoundResult>) {
-      for (solution in result.keys) {
-        println(solution.javaClass.toString() + ": " + result[solution].toString())
+  private fun printResults(results: Map<Solution, Solution.Companion.RoundResult>) {
+    for (solution in results.keys) {
+      println(
+        "${solution.javaClass}: iterations = ${results[solution]?.iterations}, " +
+          "time elapsed = ${"%.2f".format(results[solution]?.elapsedTime)} seconds, " +
+          "norm = ${results[solution]?.norm}"
+      )
+    }
+  }
+
+  private fun prepareAccumulatedResults(
+    results: Map<Solution, Solution.Companion.RoundResult>,
+    accumulatedResults: MutableMap<Solution, Solution.Companion.RoundResult>
+  ) {
+    for (result in results.keys) {
+      if (!accumulatedResults.containsKey(result)) {
+        accumulatedResults[result] = Solution.Companion.RoundResult(0, 0.0, 0.0)
+      }
+
+      accumulatedResults[result]?.iterations =
+        accumulatedResults[result]?.iterations?.plus(results[result]?.iterations ?: 0)!!
+      accumulatedResults[result]?.elapsedTime =
+        accumulatedResults[result]?.elapsedTime?.plus(results[result]?.elapsedTime ?: 0.0)!!
+      accumulatedResults[result]?.norm = accumulatedResults[result]?.norm?.plus(results[result]?.norm ?: 0.0)!!
+    }
+
+  }
+
+  fun proceed() {
+    var accumulatedResults: MutableMap<Solution, Solution.Companion.RoundResult> = mutableMapOf()
+
+    (0 until config.roundsValue).map {
+      runBlocking {
+        val results = solutions.associate {
+          it to it.solve(config.aMatrix, config.bMatrix)
+        }
+
+        prepareAccumulatedResults(results, accumulatedResults)
       }
     }
 
-    fun proceed() {
-        runBlocking {
-            val results = solutions.associate {
-                it to it.solve(config.aMatrix, config.bMatrix)
-            }
-          printResults(results)
-        }
+    for (result in accumulatedResults.keys) {
+      accumulatedResults[result]?.iterations = accumulatedResults[result]?.iterations?.div(config.roundsValue)!!
+      accumulatedResults[result]?.elapsedTime = accumulatedResults[result]?.elapsedTime?.div(config.roundsValue)!!
+      accumulatedResults[result]?.norm = accumulatedResults[result]?.norm?.div(config.roundsValue)!!
     }
+
+    printResults(accumulatedResults)
+
+  }
 }

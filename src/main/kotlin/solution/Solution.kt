@@ -5,9 +5,9 @@ abstract class Solution(
 ) {
     companion object {
         data class RoundResult(
-            val iterations: Int,
-            val elapsedTime: Double,
-            val norm: Double
+          var iterations: Int,
+          var elapsedTime: Double,
+          var norm: Double
         )
     }
 
