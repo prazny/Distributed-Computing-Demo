@@ -7,6 +7,7 @@ class ConfigurationProvider(
 ) {
     private val nValue get() = n
     val toleranceValue get() = tolerance
+    val roundsValue get() = rounds
 
     var aMatrix: Array<DoubleArray>
         private set
