@@ -9,12 +9,18 @@ class ExperimentWrapper(
     private val solutions: List<Solution>
 ) {
 
+  fun printResults (result: Map<Solution, Solution.Companion.RoundResult>) {
+      for (solution in result.keys) {
+        println(solution.javaClass.toString() + ": " + result[solution].toString())
+      }
+    }
+
     fun proceed() {
         runBlocking {
             val results = solutions.associate {
                 it to it.solve(config.aMatrix, config.bMatrix)
             }
-            println(results)
+          printResults(results)
         }
     }
 }
