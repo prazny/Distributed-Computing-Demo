@@ -3,18 +3,25 @@ package pl.edu.pw.experiment
 import kotlinx.coroutines.runBlocking
 import pl.edu.pw.ConfigurationProvider
 import pl.edu.pw.solution.Solution
+import pl.edu.pw.solution.SyncStructuralSolution
 
 class ExperimentWrapper(
-  private val config: ConfigurationProvider,
-  private val solutions: List<Solution>
+  private val config: ConfigurationProvider, private val solutions: List<Solution>
 ) {
 
   private fun printResults(results: Map<Solution, Solution.Companion.RoundResult>) {
+    var timeSync = 0.0
     for (solution in results.keys) {
+      if (solution is SyncStructuralSolution) {
+        timeSync = results[solution]?.elapsedTime ?: 0.0
+      }
+
       println(
-        "${solution.javaClass}: iterations = ${results[solution]?.iterations}, " +
-          "time elapsed = ${"%.2f".format(results[solution]?.elapsedTime)} seconds, " +
-          "norm = ${results[solution]?.norm}"
+        "${solution.javaClass}: iterations = ${results[solution]?.iterations}, " + "time elapsed = ${
+          "%.2f".format(
+            results[solution]?.elapsedTime
+          )
+        } seconds, " + "norm = ${results[solution]?.norm}, " + "S(n, p) = ${"%.2f".format(timeSync / results[solution]?.elapsedTime!!)}"
       )
     }
   }
