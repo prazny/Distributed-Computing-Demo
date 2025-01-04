@@ -7,7 +7,7 @@ import pl.edu.pw.solution.ThreadsStructuralSolution
 
 
 fun main() {
-    val config = ConfigurationProvider(1000, 1e-12, 1)
+    val config = ConfigurationProvider(500, 1e-12, 3)
 
     val solutions = listOf(
         SyncStructuralSolution(config.toleranceValue),

@@ -1,7 +1,5 @@
 package pl.edu.pw.solution
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
