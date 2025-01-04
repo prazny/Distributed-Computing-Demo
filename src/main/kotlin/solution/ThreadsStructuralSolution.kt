@@ -1,12 +1,9 @@
 package pl.edu.pw.solution
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
+import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
-class ParallelStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
+class ThreadsStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
   private val VERBOSE = true
   private val THREAD_COUNT = 2
 
@@ -34,15 +31,11 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
       rNorm = sqrt(rNormSquared)
 
       beta = rNormSquared / rPrevNormSquared
+      val threadAddINDX = thread { xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa)) }
+      val threadAddINDP = thread { p = addIND(r, multiplyINDByScalar(p, beta)) }
 
-      coroutineScope {
-        launch(Dispatchers.Default) {
-          xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
-        }
-        launch(Dispatchers.Default) {
-          p = addIND(r, multiplyINDByScalar(p, beta))
-        }
-      }
+      threadAddINDX.join()
+      threadAddINDP.join()
 
       if (i % 100 == 0 && VERBOSE) {
         println(
@@ -59,12 +52,12 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
    * This should be in separate class but, the exercise conditions require avoiding it.
    */
 
-  private suspend fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
+  private fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
     val result = multiplyIND(aMatrix, bMatrix)
     return result.sumOf { it.sum() }
   }
 
-  private suspend fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     val rowsA = aMatrix.size
     val colsA = aMatrix[0].size
     val rowsB = bMatrix.size
@@ -73,53 +66,61 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
     if (colsA != rowsB) throw IllegalArgumentException("Columns are not equal.")
 
     val result = Array(rowsA) { DoubleArray(colsB) }
-    applyCoroutineScopeWithChunks(rowsA) { i ->
+    val threads = createThreadsWithChunks(rowsA) { i ->
       for (j in 0 until colsB) {
         for (k in 0 until colsA) {
           result[i][j] += aMatrix[i][k] * bMatrix[k][j]
         }
       }
     }
+
+    threads.forEach { it.join() }
     return result
   }
 
-  private suspend fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
+  private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
     val rows = matrix.size
     val result = Array(rows) { DoubleArray(matrix[0].size) }
 
-    applyCoroutineScopeWithChunks(rows) { i ->
+    val threads = createThreadsWithChunks(rows) { i ->
       for (j in matrix[i].indices) {
         result[i][j] = matrix[i][j] * scalar
       }
     }
+
+    threads.forEach { it.join() }
     return result
   }
 
-  private suspend fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
 
     val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
 
-    applyCoroutineScopeWithChunks(aMatrix.size) { row ->
+    val threads = createThreadsWithChunks(aMatrix.size) { row ->
       for (col in 0 until aMatrix[row].size) {
         result[row][col] = aMatrix[row][col] + bMatrix[row][col]
       }
     }
+
+    threads.forEach { it.join() }
     return result
   }
 
-  private suspend fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
 
     val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
 
-    applyCoroutineScopeWithChunks(aMatrix.size) { row ->
+    val threads = createThreadsWithChunks(aMatrix.size) { row ->
       for (col in 0 until aMatrix[row].size) {
         result[row][col] = aMatrix[row][col] - bMatrix[row][col]
       }
     }
+
+    threads.forEach { it.join() }
     return result
   }
 
@@ -130,18 +131,18 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
     return Array(cols) { i -> DoubleArray(rows) { j -> matrix[j][i] } }
   }
 
-  private suspend fun applyCoroutineScopeWithChunks(count: Int, operation: suspend (Int) -> Unit) {
+  private fun createThreadsWithChunks(count: Int, operation: (Int) -> Unit): List<Thread> {
     // Divide (count / thread_count) and ceil
     val chunkSize = (count + THREAD_COUNT - 1) / THREAD_COUNT
 
-    return coroutineScope {
-      (0 until count step chunkSize).map { startRow ->
-        launch(Dispatchers.IO) {
-          for (i in startRow until (startRow + chunkSize).coerceAtMost(count)) {
-            operation(i)
-          }
+    return (0 until THREAD_COUNT).map { threadIndex ->
+      thread {
+        val currentChunk = threadIndex * chunkSize
+        for (i in currentChunk until (currentChunk + chunkSize).coerceAtMost(count)) {
+          operation(i)
         }
-      }.joinAll()
+      }
+
     }
   }
 }

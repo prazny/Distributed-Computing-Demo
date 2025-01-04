@@ -41,7 +41,7 @@ class SyncStructuralSolution(override val tolerance: Double) : Solution(toleranc
                 )
             }
         } while (rNorm > tolerance)
-        return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+        return Companion.RoundResult(i, getElapsedTime(startTime), rNorm, true)
     }
 
     /**
