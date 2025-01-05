@@ -1,14 +1,13 @@
 package pl.edu.pw.solution
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlin.math.sqrt
 
-class ParallelStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
-  private val VERBOSE = true
-  private val THREAD_COUNT = 2
+class ParallelStructuralSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
+  private val VERBOSE = false
+  @OptIn(DelicateCoroutinesApi::class)
+  private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
+
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
     val startTime = System.nanoTime()
@@ -36,10 +35,10 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
       beta = rNormSquared / rPrevNormSquared
 
       coroutineScope {
-        launch(Dispatchers.Default) {
+        launch(dispatcher) {
           xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
         }
-        launch(Dispatchers.Default) {
+        launch(dispatcher) {
           p = addIND(r, multiplyINDByScalar(p, beta))
         }
       }
@@ -132,11 +131,11 @@ class ParallelStructuralSolution(override val tolerance: Double) : Solution(tole
 
   private suspend fun applyCoroutineScopeWithChunks(count: Int, operation: suspend (Int) -> Unit) {
     // Divide (count / thread_count) and ceil
-    val chunkSize = (count + THREAD_COUNT - 1) / THREAD_COUNT
+    val chunkSize = (count + threadCount - 1) / threadCount
 
     return coroutineScope {
       (0 until count step chunkSize).map { startRow ->
-        launch(Dispatchers.IO) {
+        launch(dispatcher) {
           for (i in startRow until (startRow + chunkSize).coerceAtMost(count)) {
             operation(i)
           }

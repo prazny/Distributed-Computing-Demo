@@ -7,14 +7,20 @@ import pl.edu.pw.solution.ThreadsStructuralSolution
 
 
 fun main() {
-    val config = ConfigurationProvider(500, 1e-12, 3)
 
-    val solutions = listOf(
-        SyncStructuralSolution(config.toleranceValue),
-        ParallelStructuralSolution(config.toleranceValue),
-        ThreadsStructuralSolution(config.toleranceValue),
+    val configs = listOf(
+        ConfigurationProvider(100, 1e-12, 1, 2),
+        ConfigurationProvider(100, 1e-12, 1, 3)
     )
-    val experiment = ExperimentWrapper(config, solutions)
-    experiment.proceed()
+    configs.forEach { config ->
+        println("\nConfiguration: $config")
+        val solutions = listOf(
+            SyncStructuralSolution(config.toleranceValue),
+            ParallelStructuralSolution(config.toleranceValue, config.threadCount),
+            ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
+        )
+        val experiment = ExperimentWrapper(config, solutions)
+        experiment.proceed()
+    }
 }
 

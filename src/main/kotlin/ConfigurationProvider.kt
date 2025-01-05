@@ -4,10 +4,12 @@ class ConfigurationProvider(
     private var n: Int,
     private var tolerance: Double,
     private var rounds: Int,
+    private var threads: Int,
 ) {
     private val nValue get() = n
     val toleranceValue get() = tolerance
     val roundsValue get() = rounds
+    val threadCount get() = threads
 
     var aMatrix: Array<DoubleArray>
         private set
@@ -46,4 +48,7 @@ class ConfigurationProvider(
         return result
     }
 
+    override fun toString(): String {
+        return "Configuration {n=$n, tolerance=$tolerance, threads=$threadCount, rounds=$rounds}"
+    }
 }
