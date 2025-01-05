@@ -3,9 +3,8 @@ package pl.edu.pw.solution
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
-class ThreadsStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
-  private val VERBOSE = true
-  private val THREAD_COUNT = 2
+class ThreadsStructuralSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
+  private val VERBOSE = false
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
     val startTime = System.nanoTime()
@@ -133,16 +132,15 @@ class ThreadsStructuralSolution(override val tolerance: Double) : Solution(toler
 
   private fun createThreadsWithChunks(count: Int, operation: (Int) -> Unit): List<Thread> {
     // Divide (count / thread_count) and ceil
-    val chunkSize = (count + THREAD_COUNT - 1) / THREAD_COUNT
+    val chunkSize = (count + threadCount - 1) / threadCount
 
-    return (0 until THREAD_COUNT).map { threadIndex ->
+    return (0 until threadCount).map { threadIndex ->
       thread {
         val currentChunk = threadIndex * chunkSize
         for (i in currentChunk until (currentChunk + chunkSize).coerceAtMost(count)) {
           operation(i)
         }
       }
-
     }
   }
 }

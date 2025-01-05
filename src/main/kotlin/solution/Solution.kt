@@ -17,11 +17,10 @@ abstract class Solution(
 
           results.forEach { (solution, result) ->
             println(
-              "${solution.javaClass}: iterations = ${result.iterations}, " + "time elapsed = ${
-                "%.2f".format(
-                  result.elapsedTime
-                )
-              } seconds, " + "norm = ${result.norm}, " + "S(n, p) = ${"%.2f".format(timeSync / result.elapsedTime)}"
+              String.format(
+                "%-55s iterations = %-10d time elapsed [s] = %-10.2f norm = %-10.2f S(n, p) = %.2f",
+                solution.javaClass, result.iterations, result.elapsedTime, result.norm, timeSync / result.elapsedTime
+              )
             )
           }
         }
