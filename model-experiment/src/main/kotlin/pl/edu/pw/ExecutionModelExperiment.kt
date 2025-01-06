@@ -5,15 +5,15 @@ import pl.edu.pw.solution.ParallelStructuralSolution
 import pl.edu.pw.solution.SyncStructuralSolution
 import pl.edu.pw.solution.ThreadsStructuralSolution
 
-
-fun main() {
+fun startExperiment() {
 
     val configs = listOf(
-        ConfigurationProvider(2950, 1e-12, 3, 2),
-        ConfigurationProvider(2950, 1e-12, 3, 4),
-        ConfigurationProvider(2950, 1e-12, 3, 6),
-        ConfigurationProvider(2950, 1e-12, 3, 8),
-        ConfigurationProvider(2950, 1e-12, 3, 10),
+        ConfigurationProvider(100, 1e-6, 1, 2),
+//        ConfigurationProvider(2950, 1e-12, 3, 2),
+//        ConfigurationProvider(2950, 1e-12, 3, 4),
+//        ConfigurationProvider(2950, 1e-12, 3, 6),
+//        ConfigurationProvider(2950, 1e-12, 3, 8),
+//        ConfigurationProvider(2950, 1e-12, 3, 10),
     )
     configs.forEach { config ->
         println("\nConfiguration: $config")

@@ -1,3 +1,5 @@
+package pl.edu.pw
+
 fun main() {
   val port =  50051
   val server = MatrixServer(port)

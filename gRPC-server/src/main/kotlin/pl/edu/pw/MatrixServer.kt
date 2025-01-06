@@ -1,3 +1,5 @@
+package pl.edu.pw
+
 import io.grpc.Server
 import io.grpc.ServerBuilder
 

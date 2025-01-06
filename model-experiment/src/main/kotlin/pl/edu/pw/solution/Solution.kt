@@ -46,7 +46,7 @@ abstract class Solution(
           accumulatedResults: MutableMap<Solution, RoundResult>, roundsValue: Int
         ) {
           accumulatedResults.forEach { (solution, roundResult) ->
-            accumulatedResults[solution] = Solution.Companion.RoundResult(
+            accumulatedResults[solution] = RoundResult(
               iterations = roundResult.iterations / roundsValue,
               elapsedTime = roundResult.elapsedTime / roundsValue,
               norm = roundResult.norm / roundsValue,

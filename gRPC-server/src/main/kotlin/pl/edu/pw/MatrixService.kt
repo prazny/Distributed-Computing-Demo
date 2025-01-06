@@ -1,4 +1,4 @@
-import pl.edu.pw.*
+package pl.edu.pw
 
 internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBase() {
   override suspend fun add(request: MatrixRequest): MatrixResponse {
