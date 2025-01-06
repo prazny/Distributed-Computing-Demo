@@ -18,7 +18,7 @@ abstract class Solution(
           results.forEach { (solution, result) ->
             println(
               String.format(
-                "%-55s iterations = %-10d time elapsed [s] = %-10.2f norm = %-10.2f S(n, p) = %.2f",
+                "%-55s iterations = %-10d time elapsed [s] = %-10.2f norm = %-10.2e S(n, p) = %.2f",
                 solution.javaClass, result.iterations, result.elapsedTime, result.norm, timeSync / result.elapsedTime
               )
             )
