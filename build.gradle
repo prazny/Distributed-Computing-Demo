@@ -12,7 +12,7 @@ repositories {
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
 
-    implementation project(":ExecutionModelExperiment")
+    implementation project(":model-experiment")
 }
 
 test {
