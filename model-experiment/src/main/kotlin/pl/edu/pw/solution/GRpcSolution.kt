@@ -123,8 +123,8 @@ class GRpcSolution(
     bMatrix: Array<DoubleArray>,
     operation: (Array<DoubleArray>, Array<DoubleArray>) -> Array<DoubleArray>
   ): Array<DoubleArray> {
-    val aMatrixDivided = divideIntoSquareSubMatrixes(aMatrix.size/maxMessageSize+1, aMatrix)
-    val bMatrixDivided = divideIntoSquareSubMatrixes(aMatrix.size/maxMessageSize+1, bMatrix)
+    val aMatrixDivided = divideIntoSubMatrixes(aMatrix.size/maxMessageSize+1, aMatrix)
+    val bMatrixDivided = divideIntoSubMatrixes(aMatrix.size/maxMessageSize+1, bMatrix)
 
     val results = mutableListOf<Deferred<Array<DoubleArray>>>()
 
@@ -162,7 +162,7 @@ class GRpcSolution(
     return combinedResult
   }
 
-  private fun divideIntoSquareSubMatrixes(count: Int, matrix: Array<DoubleArray>): Array<Array<DoubleArray>> {
+  private fun divideIntoSubMatrixes(count: Int, matrix: Array<DoubleArray>): Array<Array<DoubleArray>> {
     val rowsPerChunk = (matrix.size + count - 1) / count
 
     return (0 until count).map { chunkIndex ->
