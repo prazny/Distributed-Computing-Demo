@@ -8,7 +8,7 @@ import pl.edu.pw.solution.SyncSolution
 fun startExperiment() {
 
   val configs = listOf(
-    ConfigurationProvider(2000, 1e-12, 1, 2, 3),
+    ConfigurationProvider(1000, 1e-12, 1, 2, 3, 100),
 
   )
   configs.forEach { config ->
@@ -17,7 +17,7 @@ fun startExperiment() {
       SyncSolution(config.toleranceValue),
       ParallelSolution(config.toleranceValue, config.threadCount),
   //    ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
-      GRpcSolution(config.toleranceValue, 2, config.threadCount),
+      GRpcSolution(config.toleranceValue, config.threadCount, config.instanceCount, config.maxMessageSize),
     )
     val experiment = ExperimentWrapper(config, solutions)
     experiment.proceed()

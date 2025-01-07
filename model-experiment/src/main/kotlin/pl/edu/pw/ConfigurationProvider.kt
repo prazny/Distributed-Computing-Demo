@@ -6,12 +6,14 @@ class ConfigurationProvider(
     private var rounds: Int,
     private var threads: Int,
     private var instances: Int,
+    private var maxMessage: Int,
 ) {
     private val nValue get() = n
     val toleranceValue get() = tolerance
     val roundsValue get() = rounds
     val threadCount get() = threads
     val instanceCount get() = instances
+    val maxMessageSize get() = maxMessage
 
     var aMatrix: Array<DoubleArray>
         private set

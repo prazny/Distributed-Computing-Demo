@@ -9,7 +9,8 @@ import kotlin.math.sqrt
 class GRpcSolution(
   override val tolerance: Double,
   private val threadCount: Int,
-  private val serverCount: Int
+  private val serverCount: Int,
+  private val maxMessageSize: Int
 ) : Solution(tolerance) {
   private val VERBOSE = false
 
@@ -122,13 +123,13 @@ class GRpcSolution(
     bMatrix: Array<DoubleArray>,
     operation: (Array<DoubleArray>, Array<DoubleArray>) -> Array<DoubleArray>
   ): Array<DoubleArray> {
-    val aMatrixDivided = divideIntoSquareSubMatrixes(serverCount, aMatrix)
-    val bMatrixDivided = divideIntoSquareSubMatrixes(serverCount, bMatrix)
+    val aMatrixDivided = divideIntoSquareSubMatrixes(aMatrix.size/maxMessageSize+1, aMatrix)
+    val bMatrixDivided = divideIntoSquareSubMatrixes(aMatrix.size/maxMessageSize+1, bMatrix)
 
     val results = mutableListOf<Deferred<Array<DoubleArray>>>()
 
     coroutineScope {
-      for (i in 0 until serverCount) {
+      for (i in aMatrixDivided.indices) {
         val deferredResult = async {
            operation(aMatrixDivided[i], bMatrixDivided[i])
         }
