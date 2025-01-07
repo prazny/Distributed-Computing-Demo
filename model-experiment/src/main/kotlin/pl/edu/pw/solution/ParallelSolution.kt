@@ -3,7 +3,7 @@ package pl.edu.pw.solution
 import kotlinx.coroutines.*
 import kotlin.math.sqrt
 
-class ParallelStructuralSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
+class ParallelSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
   private val VERBOSE = false
   @OptIn(DelicateCoroutinesApi::class)
   private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")

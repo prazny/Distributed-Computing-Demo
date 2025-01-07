@@ -2,7 +2,7 @@ package pl.edu.pw.solution
 
 import kotlin.math.sqrt
 
-class SyncStructuralSolution(override val tolerance: Double) : Solution(tolerance) {
+class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
     private val VERBOSE = false
 
     override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {

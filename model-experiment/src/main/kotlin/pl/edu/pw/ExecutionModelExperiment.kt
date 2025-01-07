@@ -2,9 +2,8 @@ package pl.edu.pw
 
 import pl.edu.pw.experiment.ExperimentWrapper
 import pl.edu.pw.solution.GRpcSolution
-import pl.edu.pw.solution.ParallelStructuralSolution
-import pl.edu.pw.solution.SyncStructuralSolution
-import pl.edu.pw.solution.ThreadsStructuralSolution
+import pl.edu.pw.solution.ParallelSolution
+import pl.edu.pw.solution.SyncSolution
 
 fun startExperiment() {
 
@@ -15,8 +14,8 @@ fun startExperiment() {
   configs.forEach { config ->
     println("\nConfiguration: $config")
     val solutions = listOf(
-      SyncStructuralSolution(config.toleranceValue),
-      ParallelStructuralSolution(config.toleranceValue, config.threadCount),
+      SyncSolution(config.toleranceValue),
+      ParallelSolution(config.toleranceValue, config.threadCount),
   //    ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
       GRpcSolution(config.toleranceValue, 2, config.threadCount),
     )

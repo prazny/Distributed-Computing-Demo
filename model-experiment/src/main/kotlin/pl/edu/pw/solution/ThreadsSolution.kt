@@ -3,7 +3,7 @@ package pl.edu.pw.solution
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
-class ThreadsStructuralSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
+class ThreadsSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
   private val VERBOSE = false
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
