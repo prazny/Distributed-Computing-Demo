@@ -5,11 +5,13 @@ class ConfigurationProvider(
     private var tolerance: Double,
     private var rounds: Int,
     private var threads: Int,
+    private var instances: Int,
 ) {
     private val nValue get() = n
     val toleranceValue get() = tolerance
     val roundsValue get() = rounds
     val threadCount get() = threads
+    val instanceCount get() = instances
 
     var aMatrix: Array<DoubleArray>
         private set

@@ -3,8 +3,8 @@ package pl.edu.pw
 import io.grpc.Server
 import io.grpc.ServerBuilder
 
-class MatrixServer(val port: Int) {
-  val server: Server =
+class MatrixServer(port: Int) {
+  private val server: Server =
     ServerBuilder
       .forPort(port)
       .addService(MatrixService())
@@ -12,17 +12,10 @@ class MatrixServer(val port: Int) {
 
   fun start() {
     server.start()
-    println("Server started, listening on $port")
-    Runtime.getRuntime().addShutdownHook(
-      Thread {
-        println("*** shutting down gRPC server since JVM is shutting down")
-        this@MatrixServer.stop()
-        println("*** server shut down")
-      },
-    )
+    server.awaitTermination()
   }
 
-  private fun stop() {
+  fun stop() {
     server.shutdown()
   }
 

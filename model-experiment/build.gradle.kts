@@ -16,6 +16,7 @@ dependencies {
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
 
+  implementation(project(":gRPC-server"))
   implementation(project(":protos"))
   implementation("io.grpc:grpc-netty:${grpcVersion}")
   implementation("io.grpc:grpc-protobuf:${grpcVersion}")

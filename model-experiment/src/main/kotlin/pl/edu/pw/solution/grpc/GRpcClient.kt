@@ -3,15 +3,16 @@ package pl.edu.pw.solution.grpc
 import io.grpc.ManagedChannelBuilder
 import pl.edu.pw.*
 
-class MatrixClient {
+class MatrixClient(port: Int) {
   private var stub: MatrixServiceGrpc.MatrixServiceBlockingStub
 
   companion object {
-    private fun Array<DoubleArray>.toDoubleArrayM(): DoubleArrayM {
-      val flatValues = this.flatMap { it.asList() }
-      return DoubleArrayM.newBuilder()
-        .addAllValues(flatValues)
-        .build()
+    private fun Array<DoubleArray>.toDoubleArrayM(): List<DoubleArrayM> {
+      return this.map { row ->
+        DoubleArrayM.newBuilder()
+          .addAllValues(row.toList())
+          .build()
+      }
     }
 
     private fun List<DoubleArrayM>.toArrayDoubleArray(): Array<DoubleArray> =
@@ -19,7 +20,7 @@ class MatrixClient {
   }
 
   init {
-    val channel = ManagedChannelBuilder.forAddress("localhost", 15001)
+    val channel = ManagedChannelBuilder.forAddress("localhost", port)
       .usePlaintext()
       .build()
 
@@ -30,8 +31,8 @@ class MatrixClient {
     return stub.add(
       MatrixRequest
         .newBuilder()
-        .addAMatrix(aMatrix.toDoubleArrayM())
-        .addBMatrix(bMatrix.toDoubleArrayM())
+        .addAllAMatrix(aMatrix.toDoubleArrayM())
+        .addAllBMatrix(bMatrix.toDoubleArrayM())
         .build()
     ).resultMatrixList
       .toArrayDoubleArray()
@@ -41,8 +42,8 @@ class MatrixClient {
     return stub.sub(
       MatrixRequest
         .newBuilder()
-        .addAMatrix(aMatrix.toDoubleArrayM())
-        .addBMatrix(bMatrix.toDoubleArrayM())
+        .addAllAMatrix(aMatrix.toDoubleArrayM())
+        .addAllBMatrix(bMatrix.toDoubleArrayM())
         .build()
     ).resultMatrixList
       .toArrayDoubleArray()
@@ -52,8 +53,8 @@ class MatrixClient {
     return stub.multiply(
       MatrixRequest
         .newBuilder()
-        .addAMatrix(aMatrix.toDoubleArrayM())
-        .addBMatrix(bMatrix.toDoubleArrayM())
+        .addAllAMatrix(aMatrix.toDoubleArrayM())
+        .addAllBMatrix(bMatrix.toDoubleArrayM())
         .build()
     ).resultMatrixList
       .toArrayDoubleArray()
@@ -63,7 +64,7 @@ class MatrixClient {
     return stub.multiplyByScalar(
       SingleMatrixWithScalarRequest
         .newBuilder()
-        .addMatrix(matrix.toDoubleArrayM())
+        .addAllMatrix(matrix.toDoubleArrayM())
         .setScalar(scalar)
         .build()
     ).resultMatrixList
@@ -75,7 +76,7 @@ class MatrixClient {
     return stub.transpose(
       SingleMatrixRequest
         .newBuilder()
-        .addMatrix(aMatrix.toDoubleArrayM())
+        .addAllMatrix(aMatrix.toDoubleArrayM())
         .build()
     ).resultMatrixList
       .toArrayDoubleArray()

@@ -1,20 +1,24 @@
 package pl.edu.pw.solution
 
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
+import kotlinx.coroutines.*
+import pl.edu.pw.GRpcServer
 import pl.edu.pw.solution.grpc.MatrixClient
 import kotlin.math.sqrt
 
-class GRpcSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
+class GRpcSolution(
+  override val tolerance: Double,
+  private val threadCount: Int,
+  private val serverCount: Int
+) : Solution(tolerance) {
   private val VERBOSE = false
 
   @OptIn(DelicateCoroutinesApi::class)
   private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
-  private val matrixClient = MatrixClient()
+  private var clients: List<MatrixClient> = emptyList()
+  private val server: GRpcServer? = null
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
+    this.prepareRound()
     val startTime = System.nanoTime()
 
     var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
@@ -55,45 +59,117 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int) : Solut
         )
       }
     } while (rNorm > tolerance)
-    return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+    val elapsedTime = getElapsedTime(startTime)
+    this.finalizeRound()
+    return Companion.RoundResult(i, elapsedTime, rNorm)
+  }
+
+  private fun prepareRound() {
+    val server = GRpcServer()
+    val ports = (0 until serverCount).map { i -> 5000 + i }
+    server.startServers(ports)
+    Thread.sleep(100)
+    this.clients = ports.map { port -> MatrixClient(port) }
+  }
+
+  private fun finalizeRound() {
+    server?.stopServers()
   }
 
   /**
    * This should be in separate class but, the exercise conditions require avoiding it.
    */
-
   private fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
     val result = multiplyIND(aMatrix, bMatrix)
     return result.sumOf { it.sum() }
   }
 
   private fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
-      throw IllegalArgumentException("Columns or rows are not equal.")
+    if (aMatrix[0].size != bMatrix.size)
+      throw IllegalArgumentException("Columns and rows are not equal.")
 
-    return matrixClient.multiplyMatrixes(aMatrix, bMatrix)
+    return getClient().multiplyMatrixes(aMatrix, bMatrix)
   }
 
   private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
-    val rows = matrix.size
-
-    return matrixClient.multiplyMatrixByScalar(matrix, scalar)
+    return getClient().multiplyMatrixByScalar(matrix, scalar)
   }
 
-  private fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private suspend fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
 
-    return matrixClient.addMatrixes(aMatrix, bMatrix)
-  }
+    return makeRequestWithDividedMatrixes(aMatrix, bMatrix) { a, b ->
+      getClient().addMatrixes(a, b)
+    }  }
 
-  private fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private suspend fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
-    return matrixClient.subMatrixes(aMatrix, bMatrix)
+
+    return makeRequestWithDividedMatrixes(aMatrix, bMatrix) { a, b ->
+      getClient().subMatrixes(a, b)
+    }
   }
 
   private fun transposeIND(matrix: Array<DoubleArray>): Array<DoubleArray> {
-    return matrixClient.transposeMatrix(matrix)
+    return getClient().transposeMatrix(matrix)
   }
+
+  private suspend fun makeRequestWithDividedMatrixes(
+    aMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>,
+    operation: (Array<DoubleArray>, Array<DoubleArray>) -> Array<DoubleArray>
+  ): Array<DoubleArray> {
+    val aMatrixDivided = divideIntoSquareSubMatrixes(serverCount, aMatrix)
+    val bMatrixDivided = divideIntoSquareSubMatrixes(serverCount, bMatrix)
+
+    val results = mutableListOf<Deferred<Array<DoubleArray>>>()
+
+    coroutineScope {
+      for (i in 0 until serverCount) {
+        val deferredResult = async {
+           operation(aMatrixDivided[i], bMatrixDivided[i])
+        }
+        results.add(deferredResult)
+      }
+    }
+
+    return combineResults(results, aMatrix.size, bMatrix[0].size)
+  }
+
+  private suspend fun combineResults(
+    results: List<Deferred<Array<DoubleArray>>>,
+    totalRows: Int,
+    totalCols: Int
+  ): Array<DoubleArray> {
+    val combinedResult = Array(totalRows) { DoubleArray(totalCols) }
+
+    var currentRow = 0
+    for (resultDeferred in results) {
+      val result = resultDeferred.await()
+
+      for (i in result.indices) {
+        for (j in result[i].indices) {
+          combinedResult[currentRow + i][j] = result[i][j]
+        }
+      }
+      currentRow += result.size
+    }
+
+    return combinedResult
+  }
+
+  private fun divideIntoSquareSubMatrixes(count: Int, matrix: Array<DoubleArray>): Array<Array<DoubleArray>> {
+    val rowsPerChunk = (matrix.size + count - 1) / count
+
+    return (0 until count).map { chunkIndex ->
+      val startRow = chunkIndex * rowsPerChunk
+      val endRow = minOf(startRow + rowsPerChunk, matrix.size)
+      matrix.copyOfRange(startRow, endRow)
+    }.toTypedArray()
+  }
+
+  private fun getClient() =
+    clients.random()
 }
