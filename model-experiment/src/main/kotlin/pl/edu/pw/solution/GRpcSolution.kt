@@ -2,6 +2,7 @@ package pl.edu.pw.solution
 
 import kotlinx.coroutines.*
 import pl.edu.pw.GRpcServer
+import pl.edu.pw.solution.dto.RoundResult
 import pl.edu.pw.solution.grpc.MatrixClient
 import kotlin.math.sqrt
 
@@ -17,7 +18,7 @@ class GRpcSolution(
   private var clients: List<MatrixClient> = emptyList()
   private val server: GRpcServer? = null
 
-  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
+  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
     this.prepareRound()
     val startTime = System.nanoTime()
 
@@ -61,7 +62,7 @@ class GRpcSolution(
     } while (rNorm > tolerance)
     val elapsedTime = getElapsedTime(startTime)
     this.finalizeRound()
-    return Companion.RoundResult(i, elapsedTime, rNorm)
+    return RoundResult(i, elapsedTime, rNorm)
   }
 
   private fun prepareRound() {

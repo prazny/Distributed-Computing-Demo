@@ -1,12 +1,13 @@
 package pl.edu.pw.solution
 
+import pl.edu.pw.solution.dto.RoundResult
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
 class ThreadsSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
   private val VERBOSE = false
 
-  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
+  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
     val startTime = System.nanoTime()
 
     var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
@@ -44,7 +45,7 @@ class ThreadsSolution(override val tolerance: Double, val threadCount: Int) : So
         )
       }
     } while (rNorm > tolerance)
-    return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+    return RoundResult(i, getElapsedTime(startTime), rNorm)
   }
 
   /**

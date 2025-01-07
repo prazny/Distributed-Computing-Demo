@@ -1,6 +1,7 @@
 package pl.edu.pw.solution
 
 import kotlinx.coroutines.*
+import pl.edu.pw.solution.dto.RoundResult
 import kotlin.math.sqrt
 
 class ParallelSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
@@ -9,7 +10,7 @@ class ParallelSolution(override val tolerance: Double, val threadCount: Int) : S
   private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
 
 
-  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
+  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
     val startTime = System.nanoTime()
 
     var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
@@ -51,7 +52,7 @@ class ParallelSolution(override val tolerance: Double, val threadCount: Int) : S
         )
       }
     } while (rNorm > tolerance)
-    return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+    return RoundResult(i, getElapsedTime(startTime), rNorm)
   }
 
   /**

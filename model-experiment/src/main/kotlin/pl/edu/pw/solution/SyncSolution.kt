@@ -1,11 +1,12 @@
 package pl.edu.pw.solution
 
+import pl.edu.pw.solution.dto.RoundResult
 import kotlin.math.sqrt
 
 class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
     private val VERBOSE = false
 
-    override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
+    override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
         val startTime = System.nanoTime()
 
         var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
@@ -41,7 +42,7 @@ class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
                 )
             }
         } while (rNorm > tolerance)
-        return Companion.RoundResult(i, getElapsedTime(startTime), rNorm, true)
+        return RoundResult(i, getElapsedTime(startTime), rNorm, true)
     }
 
     /**
