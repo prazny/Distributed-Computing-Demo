@@ -8,7 +8,7 @@ import pl.edu.pw.solution.SyncSolution
 fun startExperiment() {
 
   val configs = listOf(
-    ConfigurationProvider(1000, 1e-12, 1, 2, 3, 100),
+    ConfigurationProvider(1000, 1e-12, 1, 2, 3, 300),
 
   )
   configs.forEach { config ->
