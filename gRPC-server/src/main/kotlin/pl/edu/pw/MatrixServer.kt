@@ -8,6 +8,7 @@ class MatrixServer(port: Int) {
     ServerBuilder
       .forPort(port)
       .addService(MatrixService())
+      .maxInboundMessageSize(16 * 1024 * 1024)
       .build()
 
   fun start() {
