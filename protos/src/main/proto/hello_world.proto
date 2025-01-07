@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "pl.edu.pw";
+option java_outer_classname = "HelloWorldProto";
+
+package pl.edu.pw;
+
+service MatrixService {
+  rpc Multiply (MatrixRequest) returns (MatrixResponse) {}
+  rpc MultiplyByScalar (SingleMatrixWithScalarRequest) returns (MatrixResponse) {}
+  rpc Add (MatrixRequest) returns (MatrixResponse) {}
+  rpc Sub (MatrixRequest) returns (MatrixResponse) {}
+  rpc Transpose (SingleMatrixRequest) returns (MatrixResponse) {}
+}
+
+message DoubleArrayM {
+  repeated double values = 1;
+}
+
+message SingleMatrixRequest {
+  repeated DoubleArrayM matrix = 1;
+}
+
+message MatrixRequest {
+  repeated DoubleArrayM aMatrix = 1;
+  repeated DoubleArrayM bMatrix = 2;
+}
+
+message MatrixResponse {
+  repeated DoubleArrayM resultMatrix = 1;
+}
+
+message SingleMatrixWithScalarRequest {
+  repeated DoubleArrayM matrix = 1;
+  double scalar = 2;
+}
