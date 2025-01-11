@@ -50,6 +50,7 @@ class MatrixClient(port: Int) {
   }
 
   fun multiplyMatrixes(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+
     return stub.multiply(
       MatrixRequest
         .newBuilder()

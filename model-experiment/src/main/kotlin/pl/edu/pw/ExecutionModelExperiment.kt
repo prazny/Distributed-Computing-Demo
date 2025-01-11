@@ -2,13 +2,12 @@ package pl.edu.pw
 
 import pl.edu.pw.experiment.ExperimentWrapper
 import pl.edu.pw.solution.GRpcSolution
-import pl.edu.pw.solution.ParallelSolution
 import pl.edu.pw.solution.SyncSolution
 
 fun startExperiment() {
 
   val configs = listOf(
-    ConfigurationProvider(3000, 1e-11, 1, 6, 3, 300),
+    ConfigurationProvider(500, 1e-11, 1, 6, 3, 100),
 
   )
   configs.forEach { config ->
