@@ -53,6 +53,6 @@ class ConfigurationProvider(
     }
 
     override fun toString(): String {
-        return "Configuration {n=$n, tolerance=$tolerance, threads=$threadCount, rounds=$rounds}"
+        return "Configuration {n=$n, tolerance=$tolerance, threads=$threadCount, rounds=$rounds, gRPC servers=$grpcInstances, msg size=$maxMessage}"
     }
 }
