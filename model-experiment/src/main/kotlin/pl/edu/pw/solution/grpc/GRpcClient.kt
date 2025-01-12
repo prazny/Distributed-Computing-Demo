@@ -2,7 +2,6 @@ package pl.edu.pw.solution.grpc
 
 import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import pl.edu.pw.*
 

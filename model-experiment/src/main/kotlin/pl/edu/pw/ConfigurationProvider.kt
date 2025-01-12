@@ -5,14 +5,14 @@ class ConfigurationProvider(
     private var tolerance: Double,
     private var rounds: Int,
     private var threads: Int,
-    private var instances: Int,
+    private var grpcInstances: Int,
     private var maxMessage: Int,
 ) {
     private val nValue get() = n
     val toleranceValue get() = tolerance
     val roundsValue get() = rounds
     val threadCount get() = threads
-    val instanceCount get() = instances
+    val instanceCount get() = grpcInstances
     val maxMessageSize get() = maxMessage
 
     var aMatrix: Array<DoubleArray>

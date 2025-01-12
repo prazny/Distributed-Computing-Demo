@@ -3,17 +3,23 @@ package pl.edu.pw
 import pl.edu.pw.experiment.ExperimentWrapper
 import pl.edu.pw.solution.GRpcSolution
 import pl.edu.pw.solution.SyncSolution
+import pl.edu.pw.solution.grpc.MatrixClient
 
-fun startExperiment() {
+fun startExperiment(grpcClients: List<MatrixClient>) {
+  val grpcServerCount = grpcClients.count()
+
 
   val configs = listOf(
-    ConfigurationProvider(500, 1e-6, 1, 3, 3, 50),
-
-    )
+    ConfigurationProvider(1000, 1e-6, 1, 3, 2, 100),
+    ConfigurationProvider(1000, 1e-6, 1, 3, 3, 400),
+    ConfigurationProvider(1000, 1e-6, 1, 3, 3, 1000),
+  )
   configs.forEach { config ->
+    require(grpcServerCount >= config.instanceCount)
+
     println("\nConfiguration: $config")
     val solutions = listOf(
-      GRpcSolution(config.toleranceValue, config.threadCount, config.instanceCount, config.maxMessageSize),
+      GRpcSolution(config.toleranceValue, config.threadCount, config.instanceCount, config.maxMessageSize, grpcClients.take(config.instanceCount)),
       SyncSolution(config.toleranceValue),
       //ParallelSolution(config.toleranceValue, config.threadCount),
       //    ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
@@ -23,3 +29,8 @@ fun startExperiment() {
   }
 }
 
+fun main() {
+  startExperiment((5000..5003).map { port ->
+    MatrixClient(port)
+  })
+}

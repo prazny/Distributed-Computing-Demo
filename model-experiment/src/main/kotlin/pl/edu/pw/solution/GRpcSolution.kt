@@ -1,7 +1,6 @@
 package pl.edu.pw.solution
 
 import kotlinx.coroutines.*
-import pl.edu.pw.GRpcServer
 import pl.edu.pw.solution.dto.RoundResult
 import pl.edu.pw.solution.grpc.MatrixClient
 import kotlin.math.ceil
@@ -11,17 +10,15 @@ class GRpcSolution(
   override val tolerance: Double,
   private val threadCount: Int,
   private val serverCount: Int,
-  private val maxMessageSize: Int
+  private val maxMessageSize: Int,
+  private val grpcClients: List<MatrixClient>
 ) : Solution(tolerance) {
   private val VERBOSE = false
 
   @OptIn(DelicateCoroutinesApi::class)
   private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
-  private var clients: List<MatrixClient> = emptyList()
-  private val server: GRpcServer? = null
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
-    this.prepareRound()
     val startTime = System.nanoTime()
 
     var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
@@ -63,20 +60,7 @@ class GRpcSolution(
       }
     } while (rNorm > tolerance)
     val elapsedTime = getElapsedTime(startTime)
-    this.finalizeRound()
     return RoundResult(i, elapsedTime, rNorm)
-  }
-
-  private fun prepareRound() {
-    val server = GRpcServer()
-    val ports = (0 until serverCount).map { i -> 6000 + i }
-    server.startServers(ports)
-    Thread.sleep(100)
-    this.clients = ports.map { port -> MatrixClient(port) }
-  }
-
-  private fun finalizeRound() {
-    server?.stopServers()
   }
 
   /**
@@ -115,7 +99,6 @@ class GRpcSolution(
       .flatten()
       .toTypedArray()
   }
-
 
 
   private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
@@ -205,7 +188,6 @@ class GRpcSolution(
     }.toTypedArray()
   }
 
-
   private fun getClient() =
-    clients.random()
+    grpcClients.random()
 }
