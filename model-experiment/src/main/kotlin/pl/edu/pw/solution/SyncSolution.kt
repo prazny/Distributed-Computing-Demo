@@ -42,9 +42,6 @@ class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
                 )
             }
         } while (rNorm > tolerance)
-        for(row in xMatrix) {
-            println(row.joinToString(separator = ", "))
-        }
 
         return RoundResult(i, getElapsedTime(startTime), rNorm, true)
     }

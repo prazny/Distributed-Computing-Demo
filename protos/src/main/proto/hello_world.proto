@@ -7,11 +7,11 @@ option java_outer_classname = "HelloWorldProto";
 package pl.edu.pw;
 
 service MatrixService {
-  rpc Multiply (MatrixRequest) returns (MatrixResponse) {}
-  rpc MultiplyByScalar (SingleMatrixWithScalarRequest) returns (MatrixResponse) {}
-  rpc Add (MatrixRequest) returns (MatrixResponse) {}
-  rpc Sub (MatrixRequest) returns (MatrixResponse) {}
-  rpc Transpose (SingleMatrixRequest) returns (MatrixResponse) {}
+  rpc Multiply (stream MatrixRequest) returns (stream MatrixResponse) {}
+  rpc MultiplyByScalar (stream SingleMatrixWithScalarRequest) returns (stream MatrixResponse) {}
+  rpc Add (stream MatrixRequest) returns (stream MatrixResponse) {}
+  rpc Sub (stream MatrixRequest) returns (stream MatrixResponse) {}
+  rpc Transpose (stream SingleMatrixRequest) returns (stream MatrixResponse) {}
 }
 
 message DoubleArrayM {

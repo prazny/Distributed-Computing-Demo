@@ -7,16 +7,16 @@ import pl.edu.pw.solution.SyncSolution
 fun startExperiment() {
 
   val configs = listOf(
-    ConfigurationProvider(500, 1e-11, 1, 6, 3, 100),
+    ConfigurationProvider(500, 1e-6, 1, 3, 3, 50),
 
-  )
+    )
   configs.forEach { config ->
     println("\nConfiguration: $config")
     val solutions = listOf(
       GRpcSolution(config.toleranceValue, config.threadCount, config.instanceCount, config.maxMessageSize),
       SyncSolution(config.toleranceValue),
       //ParallelSolution(config.toleranceValue, config.threadCount),
-  //    ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
+      //    ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
     )
     val experiment = ExperimentWrapper(config, solutions)
     experiment.proceed()

@@ -16,6 +16,7 @@ dependencies {
     testImplementation(kotlin("test"))
 
     implementation(project(":protos"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("io.grpc:grpc-services:${grpcVersion}")
     implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
     implementation("org.slf4j:slf4j-api:1.7.25")

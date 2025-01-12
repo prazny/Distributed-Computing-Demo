@@ -87,21 +87,36 @@ class GRpcSolution(
     return result.sumOf { it.sum() }
   }
 
+  /**
+   * aMatrix is always of size (n,n) or (1,n)
+   * bMatrix is always of size (n, 1) size
+   * To distribute multiplication, we can divide aMatrix into segments
+   * and always send a segment of aMatrix along with the full bMatrix.
+   */
   private suspend fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    val size = aMatrix[0].size
-    for (row in aMatrix) {
-      if (row.size != size)
-        throw IllegalArgumentException("Columns and rows are not equal.")
+    val count = ceil(aMatrix.size.toDouble() / maxMessageSize.toDouble()).toInt()
+    require(aMatrix.isNotEmpty() && bMatrix.isNotEmpty()) {
+      "The input matrices must not be empty. aMatrix size: ${aMatrix.size}, maxMessageSize: $maxMessageSize"
     }
-    if (size != bMatrix.size)
-      throw IllegalArgumentException("Columns and rows are not equal.")
+    require(aMatrix[0].size == bMatrix.size) {
+      "Input matrices are not compatible for multiplication: aMatrix columns (${aMatrix[0].size}) != bMatrix rows (${bMatrix.size})."
+    }
 
-    val result = multiplyDistributed(aMatrix, bMatrix)
-    if(result.size != aMatrix.size || bMatrix[0].size != result[0].size) {
-      throw IllegalArgumentException("Wrong sizes")
-    }
-    return result
+    val aSubMatrices = divideMatrixHorizontally(aMatrix, count)
+
+    return coroutineScope {
+      aSubMatrices.map { aFragment ->
+        async {
+          getClient().multiplyMatrixes(aFragment, bMatrix)
+        }
+      }
+    }.awaitAll()
+      .toTypedArray()
+      .flatten()
+      .toTypedArray()
   }
+
+
 
   private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
     return getClient().multiplyMatrixByScalar(matrix, scalar)
@@ -183,83 +198,10 @@ class GRpcSolution(
     }.toTypedArray()
   }
 
-  private suspend fun multiplyDistributed(
-    aMatrix: Array<DoubleArray>,
-    bMatrix: Array<DoubleArray>,
-  ): Array<DoubleArray> {
-    val count = ceil(aMatrix.size.toDouble() / maxMessageSize.toDouble()).toInt()
-    if (count == 0) {
-      throw IllegalArgumentException("The matrix is empty." + aMatrix.size + " - " + maxMessageSize)
-    }
-    if (aMatrix[0].size != bMatrix.size) {
-      throw IllegalArgumentException("Entry matrixes are not in shape.")
-    }
-
-
-    val aSubMatrices = divideMatrixVertically(aMatrix, count)
-    val bSubMatrices = divideMatrixHorizontally(bMatrix, count)
-    for (i in aSubMatrices.indices) {
-      if (aSubMatrices[i][0].size != bSubMatrices[i].size) {
-        throw IllegalArgumentException("The matrices are not in shape." + aMatrix + bMatrix)
-      }
-    }
-    val results = mutableListOf<Deferred<Array<DoubleArray>>>()
-
-    coroutineScope {
-      for (i in 0 until count) {
-        val aFragment = aSubMatrices[i]
-        val bFragment = bSubMatrices[i]
-
-        if (aFragment[0].size != bFragment.size) {
-          throw IllegalArgumentException("The matrixes are not in shape.")
-        }
-
-        results.add(async {
-          val res = getClient().multiplyMatrixes(aFragment, bFragment)
-
-          if(res.size != aFragment.size || bFragment[0].size != res[0].size) {
-            throw IllegalArgumentException("Wrong sizes")
-          }
-          res
-        })
-      }
-    }
-    return combineMatrixFragments(results.map { it.await() })
-  }
-
-  private fun combineMatrixFragments(fragments: List<Array<DoubleArray>>): Array<DoubleArray> {
-    val totalRows = fragments[0].size
-    val totalCols = fragments[0][0].size
-
-    for (fragment in fragments) {
-      require(fragment.size == totalRows && fragment[0].size == totalCols) {
-        "All matrices must have the same dimensions."
-      }
-    }
-
-    return fragments.reduce { acc, matrix ->
-      acc.zip(matrix) { row1, row2 -> // Combine rows
-        row1.zip(row2) { element1, element2 -> element1 + element2 }.toDoubleArray()
-      }.toTypedArray()
-    }
-
-  }
-
   private fun divideMatrixHorizontally(matrix: Array<DoubleArray>, count: Int): Array<Array<DoubleArray>> {
     val chunkSize = matrix.size / count + if (matrix.size % count > 0) 1 else 0
     return (0 until count).map { i ->
       matrix.copyOfRange(i * chunkSize, minOf((i + 1) * chunkSize, matrix.size))
-    }.toTypedArray()
-  }
-
-
-  private fun divideMatrixVertically(matrix: Array<DoubleArray>, count: Int): Array<Array<DoubleArray>> {
-
-    val chunkSize = matrix[0].size / count + if (matrix[0].size % count > 0) 1 else 0
-    return (0 until count).map { i ->
-      matrix.map { row ->
-        row.copyOfRange(i * chunkSize, minOf((i + 1) * chunkSize, row.size))
-      }.toTypedArray()
     }.toTypedArray()
   }
 

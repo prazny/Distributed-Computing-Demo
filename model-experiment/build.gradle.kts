@@ -8,6 +8,7 @@ version = "1.0-SNAPSHOT"
 repositories {
   mavenCentral()
 }
+val grpcKotlinVersion = "1.4.1"
 
 val grpcVersion = "1.57.0"
 
@@ -21,6 +22,7 @@ dependencies {
   implementation("io.grpc:grpc-netty:${grpcVersion}")
   implementation("io.grpc:grpc-protobuf:${grpcVersion}")
   implementation("io.grpc:grpc-stub:${grpcVersion}")
+  implementation("io.grpc:grpc-kotlin-stub:${grpcKotlinVersion}")
 }
 
 tasks.test {
