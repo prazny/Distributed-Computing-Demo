@@ -10,9 +10,7 @@ fun startExperiment(grpcClients: List<MatrixClient>) {
 
 
   val configs = listOf(
-    ConfigurationProvider(1000, 1e-6, 1, 3, 2, 100),
-    ConfigurationProvider(1000, 1e-6, 1, 3, 3, 400),
-    ConfigurationProvider(1000, 1e-6, 1, 3, 3, 1000),
+    ConfigurationProvider(1000, 1e-6, 1, 3, 2, 400),
   )
   configs.forEach { config ->
     require(grpcServerCount >= config.instanceCount)
