@@ -1,5 +1,6 @@
 package pl.edu.pw.solution.grpc
 
+import Matrix
 import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
@@ -7,19 +8,6 @@ import pl.edu.pw.*
 
 class MatrixClient(port: Int) {
   private val stub: MatrixServiceGrpcKt.MatrixServiceCoroutineStub
-
-  companion object {
-    private fun Array<DoubleArray>.toDoubleArrayM(): List<DoubleArrayM> {
-      return this.map { row ->
-        DoubleArrayM.newBuilder()
-          .addAllValues(row.toList())
-          .build()
-      }
-    }
-
-    private fun List<DoubleArrayM>.toArrayDoubleArray(): Array<DoubleArray> =
-      this.map { it.valuesList.toDoubleArray() }.toTypedArray()
-  }
 
   init {
     val channel = ManagedChannelBuilder.forAddress("localhost", port)
@@ -29,11 +17,11 @@ class MatrixClient(port: Int) {
     stub = MatrixServiceGrpcKt.MatrixServiceCoroutineStub(channel)
   }
 
-  fun addMatrixes(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> = runBlocking {
+  fun addMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
     val request = MatrixRequest
       .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayM())
-      .addAllBMatrix(bMatrix.toDoubleArrayM())
+      .addAllAMatrix(aMatrix.toDoubleArrayMList())
+      .addAllBMatrix(bMatrix.toDoubleArrayMList())
       .build()
 
     val responseFlow = stub.add(listOf(request).asFlow())
@@ -43,14 +31,14 @@ class MatrixClient(port: Int) {
       resultMatrixList.addAll(response.resultMatrixList)
     }
 
-    resultMatrixList.toArrayDoubleArray()
+    Matrix(resultMatrixList)
   }
 
-  fun subMatrixes(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> = runBlocking {
+  fun subMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
     val request = MatrixRequest
       .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayM())
-      .addAllBMatrix(bMatrix.toDoubleArrayM())
+      .addAllAMatrix(aMatrix.toDoubleArrayMList())
+      .addAllBMatrix(bMatrix.toDoubleArrayMList())
       .build()
 
     val responseFlow = stub.sub(listOf(request).asFlow())
@@ -60,14 +48,14 @@ class MatrixClient(port: Int) {
       resultMatrixList.addAll(response.resultMatrixList)
     }
 
-    resultMatrixList.toArrayDoubleArray()
+    Matrix(resultMatrixList)
   }
 
-  fun multiplyMatrixes(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> = runBlocking {
+  fun multiplyMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
     val request = MatrixRequest
       .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayM())
-      .addAllBMatrix(bMatrix.toDoubleArrayM())
+      .addAllAMatrix(aMatrix.toDoubleArrayMList())
+      .addAllBMatrix(bMatrix.toDoubleArrayMList())
       .build()
 
     val responseFlow = stub.multiply(listOf(request).asFlow())
@@ -77,13 +65,13 @@ class MatrixClient(port: Int) {
       resultMatrixList.addAll(response.resultMatrixList)
     }
 
-    resultMatrixList.toArrayDoubleArray()
+    Matrix(resultMatrixList)
   }
 
-  fun multiplyMatrixByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> = runBlocking {
+  fun multiplyMatrixByScalar(matrix: Matrix, scalar: Double): Matrix = runBlocking {
     val request = SingleMatrixWithScalarRequest
       .newBuilder()
-      .addAllMatrix(matrix.toDoubleArrayM())
+      .addAllMatrix(matrix.toDoubleArrayMList())
       .setScalar(scalar)
       .build()
 
@@ -94,13 +82,13 @@ class MatrixClient(port: Int) {
       resultMatrixList.addAll(response.resultMatrixList)
     }
 
-    resultMatrixList.toArrayDoubleArray()
+    Matrix(resultMatrixList)
   }
 
-  fun transposeMatrix(aMatrix: Array<DoubleArray>): Array<DoubleArray> = runBlocking {
+  fun transposeMatrix(aMatrix: Matrix): Matrix = runBlocking {
     val request = SingleMatrixRequest
       .newBuilder()
-      .addAllMatrix(aMatrix.toDoubleArrayM())
+      .addAllMatrix(aMatrix.toDoubleArrayMList())
       .build()
 
     val responseFlow = stub.transpose(listOf(request).asFlow())
@@ -110,6 +98,6 @@ class MatrixClient(port: Int) {
       resultMatrixList.addAll(response.resultMatrixList)
     }
 
-    resultMatrixList.toArrayDoubleArray()
+    Matrix(resultMatrixList)
   }
 }

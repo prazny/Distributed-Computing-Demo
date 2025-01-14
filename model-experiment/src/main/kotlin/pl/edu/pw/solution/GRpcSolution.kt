@@ -1,5 +1,6 @@
 package pl.edu.pw.solution
 
+import Matrix
 import kotlinx.coroutines.*
 import pl.edu.pw.solution.dto.RoundResult
 import pl.edu.pw.solution.grpc.MatrixClient
@@ -21,7 +22,11 @@ class GRpcSolution(
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
     val startTime = System.nanoTime()
 
-    var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
+    // Convert input arrays to Matrix objects
+    var aMatrix = Matrix.fromDoubleArrayArray(aMatrix)
+    var bMatrix = Matrix.fromDoubleArrayArray(bMatrix)
+    var xMatrix = Matrix.fromDoubleArrayArray(Array(bMatrix.rowCount()) { DoubleArray(1) })
+
     var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
     var rNormSquared = r.normSquared()
     var rNorm: Double
@@ -42,6 +47,8 @@ class GRpcSolution(
       rNorm = sqrt(rNormSquared)
 
       beta = rNormSquared / rPrevNormSquared
+
+      // Parallelize the updates for xMatrix and p
       coroutineScope {
         launch(dispatcher) {
           xMatrix = addIND(xMatrix, multiplyINDByScalar(p, alfa))
@@ -59,83 +66,95 @@ class GRpcSolution(
         )
       }
     } while (rNorm > tolerance)
+
     val elapsedTime = getElapsedTime(startTime)
     return RoundResult(i, elapsedTime, rNorm)
   }
 
   /**
-   * This should be in separate class but, the exercise conditions require avoiding it.
+   * Calculates the dot product of two matrices.
    */
-  private suspend fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
+  private suspend fun dotProduct(aMatrix: Matrix, bMatrix: Matrix): Double {
     val result = multiplyIND(aMatrix, bMatrix)
-    return result.sumOf { it.sum() }
+    return result.toDoubleArrayList().sumOf { it.sum() }
   }
 
   /**
-   * aMatrix is always of size (n,n) or (1,n)
-   * bMatrix is always of size (n, 1) size
-   * To distribute multiplication, we can divide aMatrix into segments
-   * and always send a segment of aMatrix along with the full bMatrix.
+   * Multiplies aMatrix and bMatrix.
+   * The operation is split into chunks, and a segment of aMatrix is sent to gRPC server for multiplication.
    */
-  private suspend fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    val count = ceil(aMatrix.size.toDouble() / maxMessageSize.toDouble()).toInt()
-    require(aMatrix.isNotEmpty() && bMatrix.isNotEmpty()) {
-      "The input matrices must not be empty. aMatrix size: ${aMatrix.size}, maxMessageSize: $maxMessageSize"
+  private suspend fun multiplyIND(aMatrix: Matrix, bMatrix: Matrix): Matrix {
+    val count = ceil(aMatrix.rowCount().toDouble() / maxMessageSize.toDouble()).toInt()
+    require(aMatrix.rowCount() > 0 && bMatrix.rowCount() > 0) {
+      "The input matrices must not be empty."
     }
-    require(aMatrix[0].size == bMatrix.size) {
-      "Input matrices are not compatible for multiplication: aMatrix columns (${aMatrix[0].size}) != bMatrix rows (${bMatrix.size})."
+    require(aMatrix.columnCount() == bMatrix.rowCount()) {
+      "Input matrices are not compatible for multiplication: " +
+        "aMatrix.columns (${aMatrix.columnCount()}) != bMatrix.rows (${bMatrix.rowCount()})"
     }
 
     val aSubMatrices = divideMatrixHorizontally(aMatrix, count)
 
-    return coroutineScope {
+    val results = coroutineScope {
       aSubMatrices.map { aFragment ->
         async {
           getClient().multiplyMatrixes(aFragment, bMatrix)
         }
       }
     }.awaitAll()
-      .toTypedArray()
-      .flatten()
-      .toTypedArray()
+
+    // Flatten all the resulting matrices into a single matrix
+    val flattenedResults = results.flatMap { it.toDoubleArrayList() }
+
+    // Return the combined matrix
+    return Matrix.fromDoubleArrayList(flattenedResults)
   }
 
-
-  private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
+  private fun multiplyINDByScalar(matrix: Matrix, scalar: Double): Matrix {
     return getClient().multiplyMatrixByScalar(matrix, scalar)
   }
 
-  private suspend fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
-      throw IllegalArgumentException("Shapes are not equal.")
-
+  /**
+   * Adds two matrices element-wise.
+   */
+  private suspend fun addIND(aMatrix: Matrix, bMatrix: Matrix): Matrix {
+    if (aMatrix.rowCount() != bMatrix.rowCount() || aMatrix.columnCount() != bMatrix.columnCount())
+      throw IllegalArgumentException("Matrix shapes are not equal.")
     return makeRequestWithDividedMatrixes(aMatrix, bMatrix) { a, b ->
       getClient().addMatrixes(a, b)
     }
   }
 
-  private suspend fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
-      throw IllegalArgumentException("Shapes are not equal.")
-
+  /**
+   * Subtracts two matrices element-wise.
+   */
+  private suspend fun subtractIND(aMatrix: Matrix, bMatrix: Matrix): Matrix {
+    if (aMatrix.rowCount() != bMatrix.rowCount() || aMatrix.columnCount() != bMatrix.columnCount())
+      throw IllegalArgumentException("Matrix shapes are not equal.")
     return makeRequestWithDividedMatrixes(aMatrix, bMatrix) { a, b ->
       getClient().subMatrixes(a, b)
     }
   }
 
-  private fun transposeIND(matrix: Array<DoubleArray>): Array<DoubleArray> {
+  /**
+   * Transposes a matrix.
+   */
+  private fun transposeIND(matrix: Matrix): Matrix {
     return getClient().transposeMatrix(matrix)
   }
 
+  /**
+   * Divides the matrices into smaller sub-matrices for processing in parallel.
+   */
   private suspend fun makeRequestWithDividedMatrixes(
-    aMatrix: Array<DoubleArray>,
-    bMatrix: Array<DoubleArray>,
-    operation: (Array<DoubleArray>, Array<DoubleArray>) -> Array<DoubleArray>
-  ): Array<DoubleArray> {
-    val aMatrixDivided = divideIntoSubMatrixes(aMatrix.size / maxMessageSize + 1, aMatrix)
-    val bMatrixDivided = divideIntoSubMatrixes(aMatrix.size / maxMessageSize + 1, bMatrix)
+    aMatrix: Matrix,
+    bMatrix: Matrix,
+    operation: (Matrix, Matrix) -> Matrix
+  ): Matrix {
+    val aMatrixDivided = divideIntoSubMatrixes(aMatrix.rowCount() / maxMessageSize + 1, aMatrix)
+    val bMatrixDivided = divideIntoSubMatrixes(bMatrix.rowCount() / maxMessageSize + 1, bMatrix)
 
-    val results = mutableListOf<Deferred<Array<DoubleArray>>>()
+    val results = mutableListOf<Deferred<Matrix>>()
 
     coroutineScope {
       for (i in aMatrixDivided.indices) {
@@ -146,45 +165,54 @@ class GRpcSolution(
       }
     }
 
-    return combineResults(results, aMatrix.size, bMatrix[0].size)
+    return combineResults(results, aMatrix.rowCount(), bMatrix.columnCount())
   }
 
+  /**
+   * Combines results from parallel matrix operations.
+   */
   private suspend fun combineResults(
-    results: List<Deferred<Array<DoubleArray>>>,
+    results: List<Deferred<Matrix>>,
     totalRows: Int,
     totalCols: Int
-  ): Array<DoubleArray> {
+  ): Matrix {
     val combinedResult = Array(totalRows) { DoubleArray(totalCols) }
 
     var currentRow = 0
     for (resultDeferred in results) {
       val result = resultDeferred.await()
+      val resultArray = result.toDoubleArrayList()
 
-      for (i in result.indices) {
-        for (j in result[i].indices) {
-          combinedResult[currentRow + i][j] = result[i][j]
+      for (i in resultArray.indices) {
+        for (j in resultArray[i].indices) {
+          combinedResult[currentRow + i][j] = resultArray[i][j]
         }
       }
-      currentRow += result.size
+      currentRow += result.rowCount()
     }
 
-    return combinedResult
+    return Matrix.fromDoubleArrayArray(combinedResult)
   }
 
-  private fun divideIntoSubMatrixes(count: Int, matrix: Array<DoubleArray>): Array<Array<DoubleArray>> {
-    val rowsPerChunk = (matrix.size + count - 1) / count
-
+  /**
+   * Divides a matrix into sub-matrices (rows).
+   */
+  private fun divideIntoSubMatrixes(count: Int, matrix: Matrix): Array<Matrix> {
+    val rowsPerChunk = (matrix.rowCount() + count - 1) / count
     return (0 until count).map { chunkIndex ->
       val startRow = chunkIndex * rowsPerChunk
-      val endRow = minOf(startRow + rowsPerChunk, matrix.size)
+      val endRow = minOf(startRow + rowsPerChunk, matrix.rowCount())
       matrix.copyOfRange(startRow, endRow)
     }.toTypedArray()
   }
 
-  private fun divideMatrixHorizontally(matrix: Array<DoubleArray>, count: Int): Array<Array<DoubleArray>> {
-    val chunkSize = matrix.size / count + if (matrix.size % count > 0) 1 else 0
+  /**
+   * Divides a matrix horizontally (row chunks).
+   */
+  private fun divideMatrixHorizontally(matrix: Matrix, count: Int): Array<Matrix> {
+    val chunkSize = matrix.rowCount() / count + if (matrix.rowCount() % count > 0) 1 else 0
     return (0 until count).map { i ->
-      matrix.copyOfRange(i * chunkSize, minOf((i + 1) * chunkSize, matrix.size))
+      matrix.copyOfRange(i * chunkSize, minOf((i + 1) * chunkSize, matrix.rowCount()))
     }.toTypedArray()
   }
 
