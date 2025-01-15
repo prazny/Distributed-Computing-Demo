@@ -107,7 +107,7 @@ class GRpcSolution(
     val flattenedResults = results.flatMap { it.toDoubleArrayList() }
 
     // Return the combined matrix
-    return Matrix.fromDoubleArrayList(flattenedResults)
+    return Matrix.fromGMatrixRows(flattenedResults)
   }
 
   private fun multiplyINDByScalar(matrix: Matrix, scalar: Double): Matrix {

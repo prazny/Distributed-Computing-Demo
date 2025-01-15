@@ -16,6 +16,7 @@ dependencies {
   testImplementation("org.jetbrains.kotlin:kotlin-test")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.10.1")
 
   implementation(project(":gRPC-server"))
   implementation(project(":protos"))

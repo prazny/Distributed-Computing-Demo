@@ -1,5 +1,7 @@
 package pl.edu.pw
 
+import kotlin.random.Random
+
 class ConfigurationProvider(
     private var n: Int,
     private var tolerance: Double,
@@ -8,6 +10,7 @@ class ConfigurationProvider(
     private var grpcInstances: Int,
     private var maxMessage: Int,
 ) {
+    private val random = Random(1234)
     private val nValue get() = n
     val toleranceValue get() = tolerance
     val roundsValue get() = rounds
@@ -23,11 +26,11 @@ class ConfigurationProvider(
 
     init {
         aMatrix = generateSymmetricPositiveDefiniteMatrix(nValue)
-        bMatrix = Array(nValue) { DoubleArray(1) { Math.random() } }
+        bMatrix = Array(nValue) { DoubleArray(1) { random.nextDouble() } }
     }
 
     private fun generateSymmetricPositiveDefiniteMatrix(size: Int): Array<DoubleArray> {
-        val randomMatrix = Array(size) { DoubleArray(size) { Math.random() } }
+        val randomMatrix = Array(size) { DoubleArray(size) {  random.nextDouble() } }
         val transpose = Array(size) { i -> DoubleArray(size) { j -> randomMatrix[j][i] } }
 
         return multiplyMatrixes(transpose, randomMatrix)

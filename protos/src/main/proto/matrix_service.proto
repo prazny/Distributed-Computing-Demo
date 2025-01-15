@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "pl.edu.pw";
+option java_outer_classname = "MatrixServiceProto";
+
+package pl.edu.pw;
+
+service MatrixService {
+  rpc Multiply (stream MultiplyMatrixRequest) returns (stream GMatrixRow) {}
+  rpc MultiplyByScalar (stream SingleMatrixWithScalarRequest) returns (stream GMatrix) {}
+  rpc Add (stream MatrixRequest) returns (stream GMatrix) {}
+  rpc Sub (stream MatrixRequest) returns (stream GMatrix) {}
+  rpc Transpose (stream GMatrix) returns (stream GMatrix) {}
+}
+
+message GMatrix {
+  repeated GMatrixRow row = 1;
+}
+
+message GMatrixRow {
+  repeated double values = 1;
+}
+
+message MultiplyMatrixRequest {
+  oneof RequestType {
+    GMatrix bMatrix = 2;
+    GMatrixRow aMatrixRow = 1;
+  }
+}
+
+message MatrixRequest {
+  GMatrix aMatrix = 1;
+  GMatrix bMatrix = 2;
+}
+
+message SingleMatrixWithScalarRequest {
+  GMatrix matrix = 1;
+  double scalar = 2;
+}

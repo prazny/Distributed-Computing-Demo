@@ -1,25 +1,22 @@
-import pl.edu.pw.DoubleArrayM
+import pl.edu.pw.GMatrix
+import pl.edu.pw.GMatrixRow
 
-class Matrix(private val rows: List<DoubleArrayM>) {
+class Matrix(val rows: List<GMatrixRow>) {
 
   companion object {
     // Factory methods to create Matrix from DoubleArray or List<DoubleArray>
-    fun fromDoubleArrayList(data: List<DoubleArray>): Matrix {
-      val doubleArrayMList = data.map { row ->
-        DoubleArrayM.newBuilder().addAllValues(row.asList()).build()
+    fun fromGMatrixRows(data: List<DoubleArray>): Matrix {
+      val rows = data.map { row ->
+        GMatrixRow.newBuilder().addAllValues(row.asList()).build()
       }
-      return Matrix(doubleArrayMList)
+      return Matrix(rows)
     }
 
     fun fromDoubleArrayArray(data: Array<DoubleArray>): Matrix {
-      val doubleArrayMList = data.map { row ->
-        DoubleArrayM.newBuilder().addAllValues(row.asList()).build()
+      val rows = data.map { row ->
+        GMatrixRow.newBuilder().addAllValues(row.asList()).build()
       }
-      return Matrix(doubleArrayMList)
-    }
-
-    fun fromDoubleArrayMList(data: List<DoubleArrayM>): Matrix {
-      return Matrix(data)
+      return Matrix(rows)
     }
   }
 
@@ -28,9 +25,8 @@ class Matrix(private val rows: List<DoubleArrayM>) {
     return rows.map { it.valuesList.toDoubleArray() }
   }
 
-  // Access the gRPC-compatible internal representation
-  fun toDoubleArrayMList(): List<DoubleArrayM> {
-    return rows
+  fun toGMatrix(): GMatrix {
+    return GMatrix.newBuilder().addAllRow(rows).build()
   }
 
   // Get number of rows and columns
@@ -50,10 +46,10 @@ class Matrix(private val rows: List<DoubleArrayM>) {
       "Matrix dimensions do not match for addition."
     }
 
-    val resultRows = mutableListOf<DoubleArrayM>()
+    val resultRows = mutableListOf<GMatrixRow>()
     for (i in 0 until this.rowCount()) {
       val resultRow = this.row(i).zip(other.row(i)) { a, b -> a + b }
-      resultRows.add(DoubleArrayM.newBuilder().addAllValues(resultRow).build())
+      resultRows.add(GMatrixRow.newBuilder().addAllValues(resultRow).build())
     }
     return Matrix(resultRows)
   }

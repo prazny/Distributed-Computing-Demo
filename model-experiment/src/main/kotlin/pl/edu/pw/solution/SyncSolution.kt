@@ -56,21 +56,26 @@ class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
     }
 
     private fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-        val rowsA = aMatrix.size
-        val colsA = aMatrix[0].size
-        val rowsB = bMatrix.size
-        val colsB = bMatrix[0].size
+        val result: Array<DoubleArray>
+      //  val executionTime = measureNanoTime {
+            val rowsA = aMatrix.size
+            val colsA = aMatrix[0].size
+            val rowsB = bMatrix.size
+            val colsB = bMatrix[0].size
 
-        if (colsA != rowsB) throw IllegalArgumentException("Columns are not equal.")
+            if (colsA != rowsB) throw IllegalArgumentException("Columns are not equal.")
 
-        val result = Array(rowsA) { DoubleArray(colsB) }
-        for (i in 0 until rowsA) {
-            for (j in 0 until colsB) {
-                for (k in 0 until colsA) {
-                    result[i][j] += aMatrix[i][k] * bMatrix[k][j]
+            result = Array(rowsA) { DoubleArray(colsB) }
+            for (i in 0 until rowsA) {
+                for (j in 0 until colsB) {
+                    for (k in 0 until colsA) {
+                        result[i][j] += aMatrix[i][k] * bMatrix[k][j]
+                    }
                 }
             }
-        }
+
+        //}
+       // println("Czas wykonania funkcji sync: $executionTime ns")
         return result
     }
 

@@ -5,6 +5,7 @@ import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import pl.edu.pw.*
+import kotlinx.coroutines.flow.flow
 
 class MatrixClient(port: Int) {
   private val stub: MatrixServiceGrpcKt.MatrixServiceCoroutineStub
@@ -20,15 +21,15 @@ class MatrixClient(port: Int) {
   fun addMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
     val request = MatrixRequest
       .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayMList())
-      .addAllBMatrix(bMatrix.toDoubleArrayMList())
+      .setAMatrix(aMatrix.toGMatrix())
+      .setBMatrix(bMatrix.toGMatrix())
       .build()
 
     val responseFlow = stub.add(listOf(request).asFlow())
 
-    val resultMatrixList = mutableListOf<DoubleArrayM>()
+    val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.resultMatrixList)
+      resultMatrixList.addAll(response.rowList)
     }
 
     Matrix(resultMatrixList)
@@ -37,32 +38,42 @@ class MatrixClient(port: Int) {
   fun subMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
     val request = MatrixRequest
       .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayMList())
-      .addAllBMatrix(bMatrix.toDoubleArrayMList())
+      .setAMatrix(aMatrix.toGMatrix())
+      .setBMatrix(bMatrix.toGMatrix())
       .build()
 
     val responseFlow = stub.sub(listOf(request).asFlow())
 
-    val resultMatrixList = mutableListOf<DoubleArrayM>()
+    val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.resultMatrixList)
+      resultMatrixList.addAll(response.rowList)
     }
 
     Matrix(resultMatrixList)
   }
 
   fun multiplyMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
-    val request = MatrixRequest
-      .newBuilder()
-      .addAllAMatrix(aMatrix.toDoubleArrayMList())
-      .addAllBMatrix(bMatrix.toDoubleArrayMList())
-      .build()
+    val requestFlow = flow<MultiplyMatrixRequest>{
+      emit(
+        MultiplyMatrixRequest.newBuilder()
+          .setBMatrix(bMatrix.toGMatrix())
+          .build()
+      )
 
-    val responseFlow = stub.multiply(listOf(request).asFlow())
+      aMatrix.rows.forEach { aRow ->
+        emit(
+          MultiplyMatrixRequest.newBuilder()
+            .setAMatrixRow(aRow)
+            .build()
+        )
+      }
+    }
 
-    val resultMatrixList = mutableListOf<DoubleArrayM>()
+    val responseFlow = stub.multiply(requestFlow)
+
+    val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.resultMatrixList)
+      resultMatrixList.add(response)
     }
 
     Matrix(resultMatrixList)
@@ -71,31 +82,26 @@ class MatrixClient(port: Int) {
   fun multiplyMatrixByScalar(matrix: Matrix, scalar: Double): Matrix = runBlocking {
     val request = SingleMatrixWithScalarRequest
       .newBuilder()
-      .addAllMatrix(matrix.toDoubleArrayMList())
+      .setMatrix(matrix.toGMatrix())
       .setScalar(scalar)
       .build()
 
     val responseFlow = stub.multiplyByScalar(listOf(request).asFlow())
 
-    val resultMatrixList = mutableListOf<DoubleArrayM>()
+    val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.resultMatrixList)
+      resultMatrixList.addAll(response.rowList)
     }
 
     Matrix(resultMatrixList)
   }
 
-  fun transposeMatrix(aMatrix: Matrix): Matrix = runBlocking {
-    val request = SingleMatrixRequest
-      .newBuilder()
-      .addAllMatrix(aMatrix.toDoubleArrayMList())
-      .build()
+  fun transposeMatrix(matrix: Matrix): Matrix = runBlocking {
+    val responseFlow = stub.transpose(listOf(matrix.toGMatrix()).asFlow())
 
-    val responseFlow = stub.transpose(listOf(request).asFlow())
-
-    val resultMatrixList = mutableListOf<DoubleArrayM>()
+    val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.resultMatrixList)
+      resultMatrixList.addAll(response.rowList)
     }
 
     Matrix(resultMatrixList)
