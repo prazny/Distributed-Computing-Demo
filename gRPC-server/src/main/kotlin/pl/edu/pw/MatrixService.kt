@@ -34,7 +34,6 @@ internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBas
 
         MultiplyMatrixRequest.RequestTypeCase.AMATRIXROW -> {
           val aMatrixRow = request.aMatrixRow
-          Thread.sleep(3000)
           val resultRow = DoubleArray(bMatrix!!.rowList[0].valuesList.size) { colIndex ->
             aMatrixRow.valuesList.indices.sumOf { k ->
               aMatrixRow.valuesList[k] * bMatrix!!.rowList[k].valuesList[colIndex]
