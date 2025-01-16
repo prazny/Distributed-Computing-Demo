@@ -6,22 +6,20 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 
 internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBase() {
-  override fun add(requests: Flow<MatrixRequest>): Flow<GMatrix> = flow {
+  override fun add(requests: Flow<MatrixRequest>): Flow<GMatrixRow> = flow {
     requests.collect { request ->
-      val response = withContext(Dispatchers.Default) {
-        doOperation(request) { a, b -> a + b }
-      }
-      emit(response)
+      // withContext(Dispatchers.Default) {
+      emit(doOperation(request) { a, b -> a + b })
+      //}
     }
   }
 
-  override fun sub(requests: Flow<MatrixRequest>): Flow<GMatrix> = flow {
+  override fun sub(requests: Flow<MatrixRequest>): Flow<GMatrixRow> = flow {
     requests.collect { request ->
-      val response = withContext(Dispatchers.Default) {
-        doOperation(request) { a, b -> a - b }
-      }
-      emit(response)
+      //withContext(Dispatchers.Default) {
+      emit(doOperation(request) { a, b -> a - b })
     }
+    // }
   }
 
 
@@ -30,16 +28,18 @@ internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBas
 
     requests.collect { request ->
       when (request.requestTypeCase) {
-        MultiplyMatrixRequest.RequestTypeCase.BMATRIX -> bMatrix = request.bMatrix
+        MultiplyMatrixRequest.RequestTypeCase.BMATRIX -> {
+          bMatrix = request.bMatrix
+        }
+
         MultiplyMatrixRequest.RequestTypeCase.AMATRIXROW -> {
-            val aMatrixRow = request.aMatrixRow
-
-            val resultRow = DoubleArray(bMatrix!!.rowList[0].valuesList.size) { colIndex ->
-              aMatrixRow.valuesList.indices.sumOf { k ->
-                aMatrixRow.valuesList[k] * bMatrix!!.rowList[k].valuesList[colIndex]
-              }
+          val aMatrixRow = request.aMatrixRow
+          Thread.sleep(3000)
+          val resultRow = DoubleArray(bMatrix!!.rowList[0].valuesList.size) { colIndex ->
+            aMatrixRow.valuesList.indices.sumOf { k ->
+              aMatrixRow.valuesList[k] * bMatrix!!.rowList[k].valuesList[colIndex]
             }
-
+          }
           emit(GMatrixRow.newBuilder().addAllValues(resultRow.asList()).build())
 
         }
@@ -49,22 +49,17 @@ internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBas
     }
   }
 
-  override fun multiplyByScalar(requests: Flow<SingleMatrixWithScalarRequest>): Flow<GMatrix> = flow {
+  override fun multiplyByScalar(requests: Flow<SingleMatrixWithScalarRequest>): Flow<GMatrixRow> = flow {
     requests.collect { request ->
-      val response = withContext(Dispatchers.Default) {
-        val matrixRows = request.matrix.rowList
-        val scalar = request.scalar
+      //withContext(Dispatchers.Default) {
+      val matrixRows = request.matrixRow
+      val scalar = request.scalar
 
-        val resultMatrixList = matrixRows.map { row ->
-          val resultValues = row.valuesList.map { it * scalar } // Scale each element
-          GMatrixRow.newBuilder().addAllValues(resultValues).build()
-        }
+      val resultValues = matrixRows.valuesList.map { it * scalar }
 
-        GMatrix.newBuilder().addAllRow(resultMatrixList).build()
-      }
-
-      emit(response)
+      emit(GMatrixRow.newBuilder().addAllValues(resultValues).build())
     }
+    // }
   }
 
 
@@ -89,17 +84,13 @@ internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBas
   }
 
 
+  private fun doOperation(request: MatrixRequest, operation: (Double, Double) -> (Double)): GMatrixRow {
 
-  private fun doOperation(request: MatrixRequest, operation: (Double, Double) -> (Double)): GMatrix {
-    val resultMatrixList = request.aMatrix.rowList.indices.map { rowIndex ->
-      val aRow = request.aMatrix.rowList[rowIndex].valuesList
-      val bRow = request.bMatrix.rowList[rowIndex].valuesList
+    val aRow = request.aMatrixRow.valuesList
+    val bRow = request.bMatrixRow.valuesList
+    val resultRow = DoubleArray(aRow.size) { colIndex -> operation(aRow[colIndex], bRow[colIndex]) }
 
-      val resultRow = DoubleArray(aRow.size) { colIndex -> operation(aRow[colIndex], bRow[colIndex]) }
-
-      GMatrixRow.newBuilder().addAllValues(resultRow.asList()).build()
-    }
-
-    return GMatrix.newBuilder().addAllRow(resultMatrixList).build()
+    return GMatrixRow.newBuilder().addAllValues(resultRow.asList()).build()
   }
+
 }

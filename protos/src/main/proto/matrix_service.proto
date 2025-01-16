@@ -8,9 +8,9 @@ package pl.edu.pw;
 
 service MatrixService {
   rpc Multiply (stream MultiplyMatrixRequest) returns (stream GMatrixRow) {}
-  rpc MultiplyByScalar (stream SingleMatrixWithScalarRequest) returns (stream GMatrix) {}
-  rpc Add (stream MatrixRequest) returns (stream GMatrix) {}
-  rpc Sub (stream MatrixRequest) returns (stream GMatrix) {}
+  rpc MultiplyByScalar (stream SingleMatrixWithScalarRequest) returns (stream GMatrixRow) {}
+  rpc Add (stream MatrixRequest) returns (stream GMatrixRow) {}
+  rpc Sub (stream MatrixRequest) returns (stream GMatrixRow) {}
   rpc Transpose (stream GMatrix) returns (stream GMatrix) {}
 }
 
@@ -30,11 +30,11 @@ message MultiplyMatrixRequest {
 }
 
 message MatrixRequest {
-  GMatrix aMatrix = 1;
-  GMatrix bMatrix = 2;
+  GMatrixRow aMatrixRow = 1;
+  GMatrixRow bMatrixRow = 2;
 }
 
 message SingleMatrixWithScalarRequest {
-  GMatrix matrix = 1;
+  GMatrixRow matrixRow = 1;
   double scalar = 2;
 }

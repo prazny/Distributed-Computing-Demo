@@ -19,34 +19,38 @@ class MatrixClient(port: Int) {
   }
 
   fun addMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
-    val request = MatrixRequest
-      .newBuilder()
-      .setAMatrix(aMatrix.toGMatrix())
-      .setBMatrix(bMatrix.toGMatrix())
-      .build()
+    val flow = (0 until aMatrix.rows.size).map { i ->
+      MatrixRequest
+        .newBuilder()
+        .setAMatrixRow(aMatrix.rows[i])
+        .setBMatrixRow(bMatrix.rows[i])
+        .build()
+    }.asFlow()
 
-    val responseFlow = stub.add(listOf(request).asFlow())
+    val responseFlow = stub.add(flow)
 
     val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.rowList)
+      resultMatrixList.add(response)
     }
 
     Matrix(resultMatrixList)
   }
 
   fun subMatrixes(aMatrix: Matrix, bMatrix: Matrix): Matrix = runBlocking {
-    val request = MatrixRequest
-      .newBuilder()
-      .setAMatrix(aMatrix.toGMatrix())
-      .setBMatrix(bMatrix.toGMatrix())
-      .build()
+    val flow = (0 until aMatrix.rows.size).map { i ->
+      MatrixRequest
+        .newBuilder()
+        .setAMatrixRow(aMatrix.rows[i])
+        .setBMatrixRow(bMatrix.rows[i])
+        .build()
+    }.asFlow()
 
-    val responseFlow = stub.sub(listOf(request).asFlow())
+    val responseFlow = stub.sub(flow)
 
     val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.rowList)
+      resultMatrixList.add(response)
     }
 
     Matrix(resultMatrixList)
@@ -80,17 +84,19 @@ class MatrixClient(port: Int) {
   }
 
   fun multiplyMatrixByScalar(matrix: Matrix, scalar: Double): Matrix = runBlocking {
-    val request = SingleMatrixWithScalarRequest
-      .newBuilder()
-      .setMatrix(matrix.toGMatrix())
-      .setScalar(scalar)
-      .build()
+    val flow = (0 until matrix.rows.size).map { i ->
+      SingleMatrixWithScalarRequest
+        .newBuilder()
+        .setMatrixRow(matrix.rows[i]).setScalar(scalar)
+        .build()
+    }.asFlow()
 
-    val responseFlow = stub.multiplyByScalar(listOf(request).asFlow())
+
+    val responseFlow = stub.multiplyByScalar(flow)
 
     val resultMatrixList = mutableListOf<GMatrixRow>()
     responseFlow.collect { response ->
-      resultMatrixList.addAll(response.rowList)
+      resultMatrixList.add(response)
     }
 
     Matrix(resultMatrixList)

@@ -10,7 +10,7 @@ fun startExperiment(grpcClients: List<MatrixClient>) {
 
 
   val configs = listOf(
-    ConfigurationProvider(200, 1e-6, 3, 3, 1, 50),
+    ConfigurationProvider(1120, 1e-6, 1, 3, 4, 140),
   )
   configs.forEach { config ->
     require(grpcServerCount >= config.instanceCount)
@@ -28,7 +28,7 @@ fun startExperiment(grpcClients: List<MatrixClient>) {
 }
 
 fun main() {
-  startExperiment((5000..5000).map { port ->
+  startExperiment((5000..5003).map { port ->
     MatrixClient(port)
   })
 }
