@@ -19,6 +19,7 @@ val protobufVersion = "3.24.3"
 dependencies {
     testImplementation(kotlin("test"))
     implementation("com.google.protobuf:protobuf-java:${protobufVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
 
     implementation("javax.annotation:javax.annotation-api:1.3.2")
     implementation("io.grpc:grpc-netty:${grpcVersion}")

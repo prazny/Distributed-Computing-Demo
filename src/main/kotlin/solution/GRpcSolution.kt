@@ -1,18 +1,19 @@
 package pl.edu.pw.solution
 
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
-import pl.edu.pw.solution.grpc.MatrixClient
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import pl.edu.pw.*
+import pl.edu.pw.solution.grpc.Coordinator
+import pl.edu.pw.solution.grpc.TaskType
 import kotlin.math.sqrt
 
-class GRpcSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
-  private val VERBOSE = false
+class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerAddresses: List<Int>) : Solution(tolerance) {
+  private val VERBOSE = true
 
   @OptIn(DelicateCoroutinesApi::class)
   private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
-  private val matrixClient = MatrixClient()
+//  private val matrixClient = MatrixClient()
+  private val coordinator = Coordinator(workerAddresses)
 
   override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Companion.RoundResult {
     val startTime = System.nanoTime()
@@ -55,6 +56,9 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int) : Solut
         )
       }
     } while (rNorm > tolerance)
+
+//    coordinator.shutdownChannels()
+
     return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
   }
 
@@ -62,38 +66,120 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int) : Solut
    * This should be in separate class but, the exercise conditions require avoiding it.
    */
 
-  private fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
+  private suspend fun dotProduct(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double {
     val result = multiplyIND(aMatrix, bMatrix)
     return result.sumOf { it.sum() }
   }
 
-  private fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
-    if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
+  private suspend fun multiplyIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+    if (aMatrix[0].size != bMatrix.size)
       throw IllegalArgumentException("Columns or rows are not equal.")
 
-    return matrixClient.multiplyMatrixes(aMatrix, bMatrix)
+    val result = Array(aMatrix.size) {DoubleArray(bMatrix[0].size) }
+
+    val requests: Flow<StreamMultiplyRequest> = flow {
+      emit(StreamMultiplyRequest.newBuilder()
+        .setVector(Vector.newBuilder().addAllValues(bMatrix.flatMap { it.asIterable() }.toList()).build())
+        .build())
+
+      emit(StreamMultiplyRequest.newBuilder()
+        .setRowSize(aMatrix.size)
+        .build())
+
+        aMatrix.forEach { row ->
+            val request = StreamMultiplyRequest.newBuilder()
+              .setRow(MatrixRow.newBuilder().addAllValues(row.toList()).build())
+              .build()
+
+            emit(request)
+      }
+    }.flowOn(Dispatchers.Default)
+
+    val responses = coordinator.distributeTask<StreamMultiplyResponse>(TaskType.MULTIPLY_MATRIX_VECTOR, requests)
+
+    responses.resultsList.forEachIndexed { index, row ->
+      result[index] = DoubleArray(1) {row}
+    }
+
+    return result
   }
 
-  private fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
+  private suspend fun multiplyINDByScalar(matrix: Array<DoubleArray>, scalar: Double): Array<DoubleArray> {
     val rows = matrix.size
+    val cols = matrix[0].size
 
-    return matrixClient.multiplyMatrixByScalar(matrix, scalar)
+    val result = Array(rows) { DoubleArray(cols) }
+
+    val request = ScalarMultiplyRequest.newBuilder()
+      .setVector(Vector.newBuilder().addAllValues(matrix.flatMap { it.asIterable() }.toList()).build())
+      .setScalar(scalar)
+      .build()
+
+    val response = coordinator.distributeTask<ScalarMultiplyResponse>(TaskType.MULTIPLY_VECTOR_SCALAR, request)
+
+    response.result.valuesList.forEachIndexed { index, row ->
+      result[index] = DoubleArray(1) {row}
+    }
+
+    return result;
   }
 
-  private fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private suspend fun addIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
 
-    return matrixClient.addMatrixes(aMatrix, bMatrix)
+    val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
+
+    val request = VectorOpRequest.newBuilder()
+      .setVector1(Vector.newBuilder().addAllValues(aMatrix.flatMap { it.asIterable() }.toList()).build())
+      .setVector2(Vector.newBuilder().addAllValues(bMatrix.flatMap { it.asIterable() }.toList()).build())
+      .build()
+
+    val response = coordinator.distributeTask<VectorOpResponse>(TaskType.ADD_VECTORS, request)
+
+    response.result.valuesList.forEachIndexed { index, row ->
+      result[index] = DoubleArray(1) {row}
+    }
+
+    return result;
   }
 
-  private fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
+  private suspend fun subtractIND(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Array<DoubleArray> {
     if (aMatrix.size != bMatrix.size || aMatrix[0].size != bMatrix[0].size)
       throw IllegalArgumentException("Shapes are not equal.")
-    return matrixClient.subMatrixes(aMatrix, bMatrix)
+
+    val result = Array(aMatrix.size) { DoubleArray(bMatrix[0].size) }
+
+    val request = VectorOpRequest.newBuilder()
+      .setVector1(Vector.newBuilder().addAllValues(aMatrix.flatMap { it.asIterable() }.toList()).build())
+      .setVector2(Vector.newBuilder().addAllValues(bMatrix.flatMap { it.asIterable() }.toList()).build())
+      .build()
+
+    val response = coordinator.distributeTask<VectorOpResponse>(TaskType.SUB_VECTORS, request)
+
+    response.result.valuesList.forEachIndexed { index, row ->
+      result[index] = DoubleArray(1) {row}
+    }
+
+    return result;
   }
 
-  private fun transposeIND(matrix: Array<DoubleArray>): Array<DoubleArray> {
-    return matrixClient.transposeMatrix(matrix)
+  private suspend fun transposeIND(matrix: Array<DoubleArray>): Array<DoubleArray> {
+    val request = TransposeRequest.newBuilder()
+    val result = Array(matrix.size) { DoubleArray(matrix[0].size) }
+
+    matrix.forEach {row ->
+      run {
+        request.addMatrix(MatrixRow.newBuilder().addAllValues(row.asIterable()).build())
+      }
+    }
+
+    val response = coordinator.distributeTask<TransposeResponse>(TaskType.TRANSPOSE_MATRIX, request.build())
+
+    response.transposedMatrixList.forEachIndexed { index, row ->
+      result[index] = row.valuesList.toDoubleArray()
+    }
+
+    return result
   }
 }

@@ -6,32 +6,68 @@ option java_outer_classname = "HelloWorldProto";
 
 package pl.edu.pw;
 
-service MatrixService {
-  rpc Multiply (MatrixRequest) returns (MatrixResponse) {}
-  rpc MultiplyByScalar (SingleMatrixWithScalarRequest) returns (MatrixResponse) {}
-  rpc Add (MatrixRequest) returns (MatrixResponse) {}
-  rpc Sub (MatrixRequest) returns (MatrixResponse) {}
-  rpc Transpose (SingleMatrixRequest) returns (MatrixResponse) {}
+
+message MatrixRow {
+  repeated double values = 1; // Single row of a matrix
 }
 
-message DoubleArrayM {
+message Vector {
   repeated double values = 1;
 }
 
-message SingleMatrixRequest {
-  repeated DoubleArrayM matrix = 1;
+message StreamMultiplyRequest {
+  oneof multiplyRequest{
+    MatrixRow row = 1;
+    Vector vector = 2;
+    int32 rowSize = 3;
+  }
 }
 
-message MatrixRequest {
-  repeated DoubleArrayM aMatrix = 1;
-  repeated DoubleArrayM bMatrix = 2;
+message StreamMultiplyResponse {
+  repeated double results = 1; // Results for all rows processed
 }
 
-message MatrixResponse {
-  repeated DoubleArrayM resultMatrix = 1;
-}
-
-message SingleMatrixWithScalarRequest {
-  repeated DoubleArrayM matrix = 1;
+message ScalarMultiplyRequest {
+  Vector vector = 1;
   double scalar = 2;
+}
+
+message ScalarMultiplyResponse {
+  Vector result = 1;
+}
+
+message VectorOpRequest {
+  Vector vector1 = 1;
+  Vector vector2 = 2;
+}
+
+message VectorOpResponse {
+  Vector result = 1;
+}
+
+message DotProductRequest {
+  Vector vector1 = 1;
+  Vector vector2 = 2;
+}
+
+message DotProductResponse {
+  double result = 1;
+}
+
+message TransposeRequest {
+  repeated MatrixRow matrix = 1; // The matrix to transpose
+}
+
+message TransposeResponse {
+  repeated MatrixRow transposedMatrix = 1; // The transposed matrix
+}
+
+service MatrixService {
+  rpc MultiplyMatrixVector(stream StreamMultiplyRequest) returns ( StreamMultiplyResponse);
+
+  rpc MultiplyVectorScalar(ScalarMultiplyRequest) returns (ScalarMultiplyResponse);
+
+  rpc AddVectors(VectorOpRequest) returns (VectorOpResponse);
+  rpc SubVectors(VectorOpRequest) returns (VectorOpResponse);
+  rpc transpose(TransposeRequest) returns (TransposeResponse);
 }

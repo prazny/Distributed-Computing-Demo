@@ -15,7 +15,9 @@ val protobufVersion = "3.24.3"
 dependencies {
     testImplementation(kotlin("test"))
 
-    implementation(project(":protos"))
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+
+  implementation(project(":protos"))
     implementation("io.grpc:grpc-services:${grpcVersion}")
     implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
 }
