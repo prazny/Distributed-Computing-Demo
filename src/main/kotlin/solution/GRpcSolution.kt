@@ -59,7 +59,9 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerA
 
 //    coordinator.shutdownChannels()
 
-    return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+    val finishTime = getElapsedTime(startTime)
+
+    return Companion.RoundResult(i, finishTime, rNorm, checkSolution(aMatrix, xMatrix, bMatrix),false)
   }
 
   /**
@@ -93,7 +95,7 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerA
 
             emit(request)
       }
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(Dispatchers.IO)
 
     val responses = coordinator.distributeTask<StreamMultiplyResponse>(TaskType.MULTIPLY_MATRIX_VECTOR, requests)
 
@@ -181,5 +183,15 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerA
     }
 
     return result
+  }
+
+  override suspend fun checkSolution(
+    aMatrix: Array<DoubleArray>,
+    xMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>
+  ): Double {
+    val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
+
+    return sqrt(result.normSquared())
   }
 }

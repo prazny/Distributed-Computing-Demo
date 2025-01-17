@@ -41,7 +41,10 @@ class SyncStructuralSolution(override val tolerance: Double) : Solution(toleranc
                 )
             }
         } while (rNorm > tolerance)
-        return Companion.RoundResult(i, getElapsedTime(startTime), rNorm, true)
+
+        val finishTime = getElapsedTime(startTime)
+
+        return Companion.RoundResult(i, finishTime, rNorm, checkSolution(aMatrix, xMatrix, bMatrix),true)
     }
 
     /**
@@ -100,4 +103,14 @@ class SyncStructuralSolution(override val tolerance: Double) : Solution(toleranc
 
         return Array(cols) { i -> DoubleArray(rows) { j -> matrix[j][i] } }
     }
+
+  override suspend fun checkSolution(
+    aMatrix: Array<DoubleArray>,
+    xMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>
+  ): Double {
+    val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
+
+    return sqrt(result.normSquared())
+  }
 }

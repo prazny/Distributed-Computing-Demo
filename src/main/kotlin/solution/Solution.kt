@@ -8,6 +8,7 @@ abstract class Solution(
       val iterations: Int,
       val elapsedTime: Double,
       val norm: Double,
+      val solutionChecked: Double,
       val isSync: Boolean = false,
     ) {
       companion object {
@@ -18,8 +19,8 @@ abstract class Solution(
           results.forEach { (solution, result) ->
             println(
               String.format(
-                "%-55s iterations = %-10d time elapsed [s] = %-10.2f norm = %-10.2e S(n, p) = %.2f",
-                solution.javaClass, result.iterations, result.elapsedTime, result.norm, timeSync / result.elapsedTime
+                "%-55s iterations = %-10d time elapsed [s] = %-10.2f norm = %-10.2e S(n, p) = %.2f, Solution Check: = %-10.2e",
+                solution.javaClass, result.iterations, result.elapsedTime, result.norm, timeSync / result.elapsedTime, result.solutionChecked
               )
             )
           }
@@ -30,13 +31,14 @@ abstract class Solution(
         ) {
           results.forEach { (solution, roundResult) ->
             val current = accumulatedResults.getOrPut(solution) {
-              RoundResult(0, 0.0, 0.0, roundResult.isSync)
+              RoundResult(0, 0.0, 0.0, 0.0, roundResult.isSync)
             }
 
             accumulatedResults[solution] = RoundResult(
               iterations = current.iterations + roundResult.iterations,
               elapsedTime = current.elapsedTime + roundResult.elapsedTime,
               norm = current.norm + roundResult.norm,
+              solutionChecked = current.solutionChecked + roundResult.solutionChecked,
               isSync = roundResult.isSync
             )
           }
@@ -50,6 +52,7 @@ abstract class Solution(
               iterations = roundResult.iterations / roundsValue,
               elapsedTime = roundResult.elapsedTime / roundsValue,
               norm = roundResult.norm / roundsValue,
+              solutionChecked = roundResult.solutionChecked / roundsValue,
               isSync = roundResult.isSync
             )
           }
@@ -65,4 +68,6 @@ abstract class Solution(
   }
 
   protected fun getElapsedTime(startTime: Long): Double = (System.nanoTime() - startTime) / 1_000_000_000.0
+
+  abstract suspend fun checkSolution(aMatrix: Array<DoubleArray>, xMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): Double
 }

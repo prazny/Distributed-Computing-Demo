@@ -51,7 +51,10 @@ class ParallelStructuralSolution(override val tolerance: Double, val threadCount
         )
       }
     } while (rNorm > tolerance)
-    return Companion.RoundResult(i, getElapsedTime(startTime), rNorm)
+
+    val finishTime = getElapsedTime(startTime)
+
+    return Companion.RoundResult(i, finishTime, rNorm, checkSolution(aMatrix, xMatrix, bMatrix),false)
   }
 
   /**
@@ -142,5 +145,15 @@ class ParallelStructuralSolution(override val tolerance: Double, val threadCount
         }
       }.joinAll()
     }
+  }
+
+  override suspend fun checkSolution(
+    aMatrix: Array<DoubleArray>,
+    xMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>
+  ): Double {
+    val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
+
+    return sqrt(result.normSquared())
   }
 }
