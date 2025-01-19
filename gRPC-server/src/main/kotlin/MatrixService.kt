@@ -39,6 +39,7 @@ internal class MatrixService : MatrixServiceGrpcKt.MatrixServiceCoroutineImplBas
         }
         request.hasRow() -> {
           val matrixRow = request.row.valuesList
+//          println(matrixRow)
           val result = matrixRow.zip(vector).sumOf { it.first * it.second }
 
           multiplyResult[currIndex++] = result

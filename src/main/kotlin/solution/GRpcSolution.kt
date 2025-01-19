@@ -7,7 +7,7 @@ import pl.edu.pw.solution.grpc.Coordinator
 import pl.edu.pw.solution.grpc.TaskType
 import kotlin.math.sqrt
 
-class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerAddresses: List<Int>) : Solution(tolerance) {
+class GRpcSolution(override val tolerance: Double, threadCount: Int, workerAddresses: List<Int>) : Solution(tolerance) {
   private val VERBOSE = true
 
   @OptIn(DelicateCoroutinesApi::class)
@@ -95,7 +95,7 @@ class GRpcSolution(override val tolerance: Double, val threadCount: Int, workerA
 
             emit(request)
       }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO).buffer(150)
 
     val responses = coordinator.distributeTask<StreamMultiplyResponse>(TaskType.MULTIPLY_MATRIX_VECTOR, requests)
 

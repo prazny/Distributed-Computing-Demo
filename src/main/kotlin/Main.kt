@@ -10,7 +10,7 @@ import pl.edu.pw.solution.ThreadsStructuralSolution
 fun main() {
 
     val configs = listOf(
-        ConfigurationProvider(500, 1e-12, 1, 2),
+        ConfigurationProvider(1000, 1e-6, 5, 3),
 //        ConfigurationProvider(2950, 1e-12, 3, 4),
 //        ConfigurationProvider(2950, 1e-12, 3, 6),
 //        ConfigurationProvider(2950, 1e-12, 3, 8),
@@ -19,10 +19,11 @@ fun main() {
     configs.forEach { config ->
         println("\nConfiguration: $config")
         val solutions = listOf(
-//            SyncStructuralSolution(config.toleranceValue),
+
 //            ParallelStructuralSolution(config.toleranceValue, config.threadCount),
 //            ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
-             GRpcSolution(config.toleranceValue, config.threadCount, listOf(6000)),
+             GRpcSolution(config.toleranceValue, config.threadCount, listOf(6000, 6001, 6002, 6003)),
+          SyncStructuralSolution(config.toleranceValue),
         )
         val experiment = ExperimentWrapper(config, solutions)
         experiment.proceed()
