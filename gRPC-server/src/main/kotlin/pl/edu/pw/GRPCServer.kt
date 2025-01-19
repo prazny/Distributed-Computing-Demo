@@ -3,12 +3,12 @@ package pl.edu.pw
 import io.grpc.Server
 import io.grpc.ServerBuilder
 
-class MatrixServer(port: Int) {
+class GRPCServer(port: Int) {
   private val server: Server =
     ServerBuilder
       .forPort(port)
-      .addService(MatrixService())
-      .maxInboundMessageSize(16 * 1024 * 1024)
+      .addService(LinearEquationService())
+      .maxInboundMessageSize(16 * 1024 * 1024 * 102)
       .build()
 
   fun start() {

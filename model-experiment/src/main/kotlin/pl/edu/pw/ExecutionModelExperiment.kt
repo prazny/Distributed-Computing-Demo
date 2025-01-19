@@ -2,33 +2,35 @@ package pl.edu.pw
 
 import pl.edu.pw.experiment.ExperimentWrapper
 import pl.edu.pw.solution.GRpcSolution
+import pl.edu.pw.solution.ParallelSolution
 import pl.edu.pw.solution.SyncSolution
-import pl.edu.pw.solution.grpc.MatrixClient
+import pl.edu.pw.solution.grpc.LinearEquationClient
+import pl.edu.pw.solutionWrappers.ParallelWrapper
+import pl.edu.pw.solutionWrappers.SyncWrapper
 
-fun startExperiment(grpcClients: List<MatrixClient>) {
-  val grpcServerCount = grpcClients.count()
+fun startExperiment(toleranceValue: Double, threadCount: Int, grpcClient: LinearEquationClient) {
 
-
-  val configs = listOf(
-    ConfigurationProvider(1120, 1e-6, 1, 3, 4, 140),
+  val matrixProvider = MatrixProvider(1700)
+  val matrices = List(1) { matrixProvider }
+  val solutions = listOf(
+    SyncSolution(toleranceValue),
+    ParallelSolution(toleranceValue, threadCount),
+    GRpcSolution(toleranceValue, threadCount, grpcClient),
   )
-  configs.forEach { config ->
-    require(grpcServerCount >= config.instanceCount)
 
-    println("\nConfiguration: $config")
-    val solutions = listOf(
-      GRpcSolution(config.toleranceValue, config.threadCount, config.instanceCount, config.maxMessageSize, grpcClients.take(config.instanceCount)),
-      SyncSolution(config.toleranceValue),
-      // ParallelSolution(config.toleranceValue, config.threadCount),
-      // ThreadsStructuralSolution(config.toleranceValue, config.threadCount),
-    )
-    val experiment = ExperimentWrapper(config, solutions)
-    experiment.proceed()
-  }
+  val wrappers = listOf(
+    SyncWrapper(),
+    ParallelWrapper(),
+  )
+
+  val experiment = ExperimentWrapper(matrices, solutions, wrappers)
+  experiment.proceed()
 }
 
+
+const val TOLERANCE = 1e-6
+const val THREAD_COUNT = 3
+
 fun main() {
-  startExperiment((5000..5003).map { port ->
-    MatrixClient(port)
-  })
+  startExperiment(TOLERANCE, THREAD_COUNT, LinearEquationClient(listOf(5000,)))
 }

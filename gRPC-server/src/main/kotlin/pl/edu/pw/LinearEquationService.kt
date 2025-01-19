@@ -1,17 +1,26 @@
-package pl.edu.pw.solution
+package pl.edu.pw
 
-import getElapsedTime
 import kotlinx.coroutines.*
-import pl.edu.pw.solution.dto.RoundResult
+import normSquared
 import kotlin.math.sqrt
 
-class ParallelSolution(override val tolerance: Double, val threadCount: Int) : Solution(tolerance) {
-  private val VERBOSE = false
-  @OptIn(DelicateCoroutinesApi::class)
-  private val dispatcher = newFixedThreadPoolContext(threadCount, "ParallelThreadPool")
+internal class LinearEquationService : LinearEquationGrpcKt.LinearEquationCoroutineImplBase() {
+  val VERBOSE = false
+  val THREAD_COUNT = 3
 
-  override suspend fun solve(aMatrix: Array<DoubleArray>, bMatrix: Array<DoubleArray>): RoundResult {
-    val startTime = System.nanoTime()
+  @OptIn(DelicateCoroutinesApi::class)
+  private val dispatcher = newFixedThreadPoolContext(THREAD_COUNT, "ParallelThreadPool")
+
+  fun GMatrix.toDoubleArray(): Array<DoubleArray> {
+    return this.rowList.map { it ->
+      it.valuesList.map { it }.toDoubleArray()
+    }.toTypedArray()
+  }
+
+  override suspend fun solve(request: SolveRequest): GMatrix {
+    val aMatrix = request.aMatrix.toDoubleArray()
+    val bMatrix = request.bMatrix.toDoubleArray()
+    val tolerance = request.tolerance
 
     var xMatrix = Array(bMatrix.size) { DoubleArray(1) }
     var r = subtractIND(bMatrix, multiplyIND(aMatrix, xMatrix))
@@ -43,16 +52,9 @@ class ParallelSolution(override val tolerance: Double, val threadCount: Int) : S
           p = addIND(r, multiplyINDByScalar(p, beta))
         }
       }
-
-      if (i % 100 == 0 && VERBOSE) {
-        println(
-          "Iteration $i: Norm = ${rNorm}, Time elapsed = ${
-            "%.2f".format(getElapsedTime(startTime))
-          } seconds"
-        )
-      }
     } while (rNorm > tolerance)
-    return RoundResult(i, getElapsedTime(startTime), rNorm, false, checkSolution(aMatrix, xMatrix, bMatrix))
+
+    return GMatrix.newBuilder().build()
   }
 
   /**
@@ -132,7 +134,7 @@ class ParallelSolution(override val tolerance: Double, val threadCount: Int) : S
 
   private suspend fun applyCoroutineScopeWithChunks(count: Int, operation: suspend (Int) -> Unit) {
     // Divide (count / thread_count) and ceil
-    val chunkSize = (count + threadCount - 1) / threadCount
+    val chunkSize = (count + THREAD_COUNT - 1) / THREAD_COUNT
 
     return coroutineScope {
       (0 until count step chunkSize).map { startRow ->
@@ -143,19 +145,5 @@ class ParallelSolution(override val tolerance: Double, val threadCount: Int) : S
         }
       }.joinAll()
     }
-  }
-
-  override suspend fun checkSolution(
-    aMatrix: Array<DoubleArray>,
-    xMatrix: Array<DoubleArray>,
-    bMatrix: Array<DoubleArray>
-  ): Double {
-    val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
-
-    return sqrt(result.normSquared())
-  }
-
-  override fun toString(): String {
-    return "Parallel"
   }
 }

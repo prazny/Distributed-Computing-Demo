@@ -1,26 +1,43 @@
 package pl.edu.pw.experiment
 
-import kotlinx.coroutines.runBlocking
-import pl.edu.pw.ConfigurationProvider
+import pl.edu.pw.MatrixProvider
 import pl.edu.pw.solution.Solution
-import pl.edu.pw.solution.dto.RoundResult
+import pl.edu.pw.solution.dto.ExperimentResult
+import pl.edu.pw.solutionWrappers.SolutionWrapper
 
 class ExperimentWrapper(
-  private val config: ConfigurationProvider, private val solutions: List<Solution>
+  private val matrices: List<MatrixProvider>,
+  private val solutions: List<Solution>,
+  private val wrappers: List<SolutionWrapper>
 ) {
-
   fun proceed() {
-    val accumulatedResults: MutableMap<Solution, RoundResult> = mutableMapOf()
 
-    (0 until config.roundsValue).map {
-      runBlocking {
-        val results = solutions.associateWith { it.solve(config.aMatrix, config.bMatrix) }
 
-        RoundResult.prepareAccumulatedResults(results, accumulatedResults)
+    val experimentResults: MutableList<Triple<SolutionWrapper, Solution, ExperimentResult>> = mutableListOf()
+    wrappers.forEach { wrapper ->
+      solutions.forEach { solution ->
+        val result = wrapper.solve(solution, matrices.map { Pair(it.aMatrix, it.bMatrix) })
+        experimentResults.add(Triple(wrapper, solution, result))
       }
     }
 
-    RoundResult.calculateAverageResults(accumulatedResults, config.roundsValue)
-    RoundResult.printResults(accumulatedResults)
+    printResults(experimentResults)
+  }
+
+  private fun printResults(experimentResults: List<Triple<SolutionWrapper, Solution, ExperimentResult>>) {
+    println("Configuration: ${matrices[0].nValue} × ${matrices[0].nValue} matrices run ${matrices.size} times.")
+
+    val sourceTime = experimentResults.find { it.third.isSync }!!.third.elapsedTime
+    experimentResults.forEach { result ->
+      println(
+        String.format(
+          "Wrapper: %-10s Solution: %-10s Time: %5.2f P: %5.2f",
+          result.first,
+          result.second,
+          result.third.elapsedTime,
+          sourceTime / result.third.elapsedTime
+        )
+      )
+    }
   }
 }

@@ -1,5 +1,6 @@
 package pl.edu.pw.solution
 
+import getElapsedTime
 import pl.edu.pw.solution.dto.RoundResult
 import kotlin.math.sqrt
 
@@ -43,7 +44,7 @@ class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
             }
         } while (rNorm > tolerance)
 
-        return RoundResult(i, getElapsedTime(startTime), rNorm, true)
+        return RoundResult(i, getElapsedTime(startTime), rNorm, true, checkSolution(aMatrix, xMatrix, bMatrix))
     }
 
     /**
@@ -106,5 +107,19 @@ class SyncSolution(override val tolerance: Double) : Solution(tolerance) {
         val cols = matrix[0].size
 
         return Array(cols) { i -> DoubleArray(rows) { j -> matrix[j][i] } }
+    }
+
+    override suspend fun checkSolution(
+        aMatrix: Array<DoubleArray>,
+        xMatrix: Array<DoubleArray>,
+        bMatrix: Array<DoubleArray>
+    ): Double {
+        val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
+
+        return sqrt(result.normSquared())
+    }
+
+    override fun toString(): String {
+        return "Sync"
     }
 }

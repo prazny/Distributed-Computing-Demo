@@ -2,16 +2,12 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "pl.edu.pw";
-option java_outer_classname = "MatrixServiceProto";
+option java_outer_classname = "LinearEquationServiceProto";
 
 package pl.edu.pw;
 
-service MatrixService {
-  rpc Multiply (stream MultiplyMatrixRequest) returns (stream GMatrixRow) {}
-  rpc MultiplyByScalar (stream SingleMatrixWithScalarRequest) returns (stream GMatrixRow) {}
-  rpc Add (stream MatrixRequest) returns (stream GMatrixRow) {}
-  rpc Sub (stream MatrixRequest) returns (stream GMatrixRow) {}
-  rpc Transpose (stream GMatrix) returns (stream GMatrix) {}
+service LinearEquation {
+  rpc Solve (SolveRequest) returns (GMatrix) {}
 }
 
 message GMatrix {
@@ -22,19 +18,9 @@ message GMatrixRow {
   repeated double values = 1;
 }
 
-message MultiplyMatrixRequest {
-  oneof RequestType {
-    GMatrix bMatrix = 2;
-    GMatrixRow aMatrixRow = 1;
-  }
-}
-
-message MatrixRequest {
-  GMatrixRow aMatrixRow = 1;
-  GMatrixRow bMatrixRow = 2;
-}
-
-message SingleMatrixWithScalarRequest {
-  GMatrixRow matrixRow = 1;
-  double scalar = 2;
+message SolveRequest {
+  double tolerance = 1;
+  int32 threadCount = 2;
+  GMatrix aMatrix = 3;
+  GMatrix bMatrix = 4;
 }

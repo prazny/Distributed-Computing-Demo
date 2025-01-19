@@ -19,6 +19,7 @@ dependencies {
   implementation(kotlin("stdlib"))
 
   implementation(project(":protos"))
+  implementation(project(":matrix-service"))
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
   implementation("io.grpc:grpc-services:${grpcVersion}")
   implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")

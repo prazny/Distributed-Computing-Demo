@@ -13,7 +13,7 @@ fun main(args: Array<String>) {
     return
   }
 
-  val grpcServer = GRpcServer()
-  grpcServer.startServer(port)
+  val grpcServer = GRPCServer(port)
+  grpcServer.start()
   println("Server started on port $port")
 }

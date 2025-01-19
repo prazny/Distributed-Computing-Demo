@@ -1,5 +1,6 @@
 package pl.edu.pw.solution
 
+import getElapsedTime
 import pl.edu.pw.solution.dto.RoundResult
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
@@ -143,5 +144,19 @@ class ThreadsSolution(override val tolerance: Double, val threadCount: Int) : So
         }
       }
     }
+  }
+
+  override suspend fun checkSolution(
+    aMatrix: Array<DoubleArray>,
+    xMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>
+  ): Double {
+    val result = subtractIND(multiplyIND(aMatrix, xMatrix), bMatrix)
+
+    return sqrt(result.normSquared())
+  }
+
+  override fun toString(): String {
+    return "Threads"
   }
 }

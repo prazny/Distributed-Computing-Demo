@@ -12,5 +12,10 @@ abstract class Solution(
     return this.sumOf { row -> row.sumOf { it * it } }
   }
 
-  protected fun getElapsedTime(startTime: Long): Double = (System.nanoTime() - startTime) / 1_000_000_000.0
+  abstract suspend fun checkSolution(
+    aMatrix: Array<DoubleArray>,
+    xMatrix: Array<DoubleArray>,
+    bMatrix: Array<DoubleArray>
+  ): Double;
+
 }
