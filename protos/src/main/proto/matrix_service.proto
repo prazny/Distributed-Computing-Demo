@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "pl.edu.pw";
+option java_outer_classname = "LinearEquationServiceProto";
+
+package pl.edu.pw;
+
+service LinearEquation {
+  rpc Solve (SolveRequest) returns (GMatrix) {}
+}
+
+message GMatrix {
+  repeated GMatrixRow row = 1;
+}
+
+message GMatrixRow {
+  repeated double values = 1;
+}
+
+message SolveRequest {
+  double tolerance = 1;
+  int32 threadCount = 2;
+  GMatrix aMatrix = 3;
+  GMatrix bMatrix = 4;
+}
